@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sketch2Face // MOBILITEEE</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;800&family=Space+Mono:ital,wght@0,400;0,700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #F5F5F7;
+            --text-main: #1D1D1F;
+            --text-muted: #86868B;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --accent-blue: #0071E3;
+            --accent-green: #34C759;
+            --accent-purple: #AF52DE;
+            --accent-orange: #FF9500;
+            --accent-amber: #F5A623;
+        }
+
+        body {
+            background-color: var(--bg-color); color: var(--text-main);
+            font-family: 'Inter', -apple-system, 'Noto Serif SC', sans-serif;
+            overflow-x: hidden; -webkit-font-smoothing: antialiased;
+        }
+
+        .aurora-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2;
+            background: radial-gradient(circle at 20% 30%, rgba(175, 82, 222, 0.10), transparent 50%),
+                        radial-gradient(circle at 80% 70%, rgba(0, 113, 227, 0.08), transparent 50%),
+                        radial-gradient(circle at 50% 50%, rgba(245, 166, 35, 0.06), transparent 50%);
+            filter: blur(60px); animation: auroraMove 20s ease-in-out infinite alternate;
+        }
+        @keyframes auroraMove { 0% { transform: scale(1) translate(0,0); } 100% { transform: scale(1.1) translate(-20px, 20px); } }
+
+        .glass {
+            background: var(--card-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+        }
+        .rounded-super { border-radius: 2rem; }
+
+        .font-mono-en { font-family: 'Space Mono', monospace; }
+        .tag-pill { display: inline-flex; align-items: center; padding: 6px 16px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+
+        /* 折叠面板 */
+        .fold-section { border: none; }
+        .fold-section > summary {
+            list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            user-select: none; -webkit-user-select: none;
+        }
+        .fold-section > summary::-webkit-details-marker { display: none; }
+        .fold-section > summary::before {
+            content: '+'; font-family: 'Space Mono', monospace; font-size: 1.2rem; font-weight: 700;
+            transition: transform 0.35s ease; color: var(--accent-purple);
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; flex-shrink: 0;
+        }
+        .fold-section[open] > summary::before { content: '−'; transform: rotate(180deg); }
+
+        .fold-body {
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+        }
+        .fold-section:not([open]) .fold-body { max-height: 0 !important; opacity: 0; }
+        .fold-section[open] .fold-body { max-height: 12000px; opacity: 1; }
+
+        /* 代码块 */
+        .code-block { background: #1E1E1E; color: #D4D4D4; border-radius: 1rem; padding: 1.25rem; font-family: 'Space Mono'; font-size: 12px; overflow-x: auto; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); line-height: 1.6; }
+        .code-keyword { color: #569CD6; } .code-string { color: #CE9178; } .code-comment { color: #6A9955; }
+
+        @media (max-width: 768px) {
+            .model-table td { padding: 6px 8px; font-size: 10px; }
+        }
+    /* 底部Dock导航 */
+.dock-nav{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:100;display:flex;gap:5px;padding:7px 10px;border-radius:100px;background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);box-shadow:0 4px 24px rgba(0,0,0,0.06);}
+.dock-item{padding:8px 16px;border-radius:100px;font-size:11px;font-weight:500;color:var(--text-main);text-decoration:none;transition:all 0.3s ease;white-space:nowrap;}
+.dock-item:hover{background:rgba(0,0,0,0.05);}
+</style>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+
+<!-- ==================== NAV ==================== -->
+<nav class="fixed top-0 w-full px-6 py-4 md:px-10 md:py-6 flex justify-between items-center z-50 glass">
+    <a href="index.html" class="font-bold tracking-widest hover:text-[--accent-purple] transition-colors flex items-center gap-2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        RETURN
+    </a>
+    <div class="text-xs font-bold uppercase tracking-widest text-[--text-muted]">Project 03 · Deep Learning</div>
+</nav>
+
+<div id="smooth-wrapper">
+
+<!-- ==================== HERO ==================== -->
+<section class="min-h-screen flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto pt-24 pb-12">
+    <div class="gs-fade">
+        <span class="tag-pill bg-purple-50 text-purple-600 mb-6">Academic Research · Deep Learning Course Design</span>
+        <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6">
+            Sketch2Face<br>简笔画人脸生成系统
+        </h1>
+        <p class="text-xl md:text-2xl text-[--text-muted] font-serif max-w-3xl leading-relaxed mb-4">
+            基于条件生成对抗网络（cGAN）的端到端图像翻译
+        </p>
+        <p class="text-base md:text-lg text-[--text-muted] max-w-2xl leading-relaxed mb-10">
+            从一张手绘简笔画出发，让 AI 生成对应的逼真人脸照片。本项目为深度学习课程设计，基于 <strong class="text-black">pix2pix 框架 + U-Net 生成器 + PatchGAN 判别器</strong>，
+            在 FS2K 数据集（2,104 对样本）上完成训练，并额外设计了两套改进方案：<strong class="text-black">检索增强模块</strong>与<strong class="text-black">数据增强微调策略</strong>。
+        </p>
+
+        <div class="flex flex-wrap gap-4">
+            <a href="https://github.com/Mobilteee/sketch2face-augmented" target="_blank" class="glass px-8 py-4 rounded-full font-bold hover:bg-black hover:text-white transition-all shadow-md flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                GitHub 仓库
+            </a>
+        </div>
+        <p class="text-xs text-[--text-muted] mt-4">本地 PyCharm 终端运行 · Gradio 前端交互 · 未部署线上服务</p>
+    </div>
+</section>
+
+<!-- ==================== 定位卡片 ==================== -->
+<section class="py-12 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h3 class="text-sm font-bold uppercase tracking-widest text-[--text-muted] mb-6">▎What This Project Demonstrates</h3>
+        <table class="w-full text-sm">
+            <tr class="border-b border-black/5">
+                <td class="py-3 pr-4 text-red-400 font-bold text-right whitespace-nowrap">❌ 调个现成 API</td>
+                <td class="py-3 px-2 text-[--text-muted] text-center">→</td>
+                <td class="py-3 pl-4 text-[--accent-purple] font-bold">✅ 从理论到代码：完整理解 cGAN / U-Net / PatchGAN 原理并逐层实现</td>
+            </tr>
+            <tr class="border-b border-black/5">
+                <td class="py-3 pr-4 text-red-400 font-bold text-right whitespace-nowrap">❌ 跑通 demo 就结束</td>
+                <td class="py-3 px-2 text-[--text-muted] text-center">→</td>
+                <td class="py-3 pl-4 text-[--accent-purple] font-bold">✅ 发现实际痛点（手绘质量差→生成模糊），设计两套改进方案并量化验证</td>
+            </tr>
+            <tr class="border-b border-black/5">
+                <td class="py-3 pr-4 text-red-400 font-bold text-right whitespace-nowrap">❌ 只关注生成结果</td>
+                <td class="py-3 px-2 text-[--text-muted] text-center">→</td>
+                <td class="py-3 pl-4 text-[--accent-purple] font-bold">✅ 消融实验 · 对比实验 · Grad-CAM / t-SNE 可视化 · FID/SSIM 量化评估</td>
+            </tr>
+            <tr>
+                <td class="py-3 pr-4 text-red-400 font-bold text-right whitespace-nowrap">❌ 仅限 Jupyter Notebook</td>
+                <td class="py-3 px-2 text-[--text-muted] text-center">→</td>
+                <td class="py-3 pl-4 text-[--accent-purple] font-bold">✅ 模块化工程结构：train / test / augment / retrieve / Gradio 前端独立脚本</td>
+            </tr>
+        </table>
+    </div>
+</section>
+
+<!-- ==================== 01 研究背景 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">研究背景与动机</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Why Sketch-to-Face Matters</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white/60 rounded-2xl p-6 border border-white">
+                <div class="text-2xl mb-3">🕵️</div>
+                <h4 class="font-bold text-sm mb-2">刑事侦查</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">根据目击者描述快速生成嫌疑人画像，提高办案效率。</p>
+            </div>
+            <div class="bg-white/60 rounded-2xl p-6 border border-white">
+                <div class="text-2xl mb-3">🎮</div>
+                <h4 class="font-bold text-sm mb-2">数字娱乐与角色设计</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">设计师通过简笔画快速生成角色原型，缩短创作周期。</p>
+            </div>
+            <div class="bg-white/60 rounded-2xl p-6 border border-white">
+                <div class="text-2xl mb-3">🤝</div>
+                <h4 class="font-bold text-sm mb-2">人机交互</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">增强用户的创意表达和趣味互动体验。</p>
+            </div>
+        </div>
+
+        <details class="fold-section mt-6">
+            <summary class="text-sm font-bold text-[--accent-purple] hover:text-black transition-colors py-2">
+                阅读完整研究背景：从传统方法到 GAN 的范式转变
+            </summary>
+            <div class="fold-body pt-4 space-y-4 text-xs text-[--text-muted] leading-relaxed">
+                <p>传统人脸素描合成方法依赖<strong class="text-black">手工设计的特征提取算法</strong>（如边缘检测、稀疏表示），生成的人脸轮廓清晰度不足、纹理粗糙。这类方法的核心瓶颈在于：手工特征无法充分表征简笔画线条与真实人脸之间的复杂非线性映射关系。</p>
+                <p>2014 年 Goodfellow 提出生成对抗网络（GAN），通过生成器与判别器的对抗训练学习数据分布的高维映射。在此基础上，Mirza 等人提出的<strong class="text-black">条件 GAN（cGAN）</strong>通过引入条件信息使生成过程可控。Isola 等人在 2017 年提出的 <strong class="text-black">pix2pix</strong> 将 cGAN 构建为通用图像翻译框架，使用 U-Net 生成器 + PatchGAN 判别器，在标签图→街景、灰度图上色等任务上取得了突破。</p>
+                <p>在人脸素描合成领域，Fan 等人在 2022 年发布的 <strong class="text-black">FS2K 数据集</strong>（2,104 对样本）是目前公开可用的最大规模数据集，涵盖三种素描风格、多种光照和面部属性，为深度学习方法的训练提供了关键数据支撑。</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 02 模型架构 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">模型架构与技术细节</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Model Architecture · pix2pix + U-Net + PatchGAN</p>
+
+        <!-- 始终可见：三组件卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm mb-6">
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <div class="font-mono-en text-xs text-[--accent-purple] mb-2">Generator</div>
+                <h4 class="font-bold mb-2">U-Net（编码器-解码器）</h4>
+                <ul class="text-xs text-[--text-muted] space-y-1">
+                    <li>· 8 层下采样 + 7 层上采样</li>
+                    <li>· 跳跃连接保留边缘/轮廓细节</li>
+                    <li>· Dropout(0.5) 防止过拟合</li>
+                    <li>· 输入/输出: 256×256 RGB</li>
+                </ul>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <div class="font-mono-en text-xs text-[--accent-blue] mb-2">Discriminator</div>
+                <h4 class="font-bold mb-2">PatchGAN（70×70 感受野）</h4>
+                <ul class="text-xs text-[--text-muted] space-y-1">
+                    <li>· 4 层卷积下采样</li>
+                    <li>· 对局部 patch 判别真伪</li>
+                    <li>· InstanceNorm 保持样本独立</li>
+                    <li>· 输出 30×30 判别图</li>
+                </ul>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <div class="font-mono-en text-xs text-[--accent-amber] mb-2">Loss Function</div>
+                <h4 class="font-bold mb-2">对抗损失 + L1 损失（λ=100）</h4>
+                <ul class="text-xs text-[--text-muted] space-y-1">
+                    <li>· GAN Loss: 交叉熵对抗训练</li>
+                    <li>· L1 Loss: 逐像素结构约束</li>
+                    <li>· Adam 优化器 (lr=2e-4)</li>
+                    <li>· 后 50 epoch 线性衰减</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 折叠：完整架构细节 -->
+        <details class="fold-section">
+            <summary class="text-sm font-bold text-[--accent-purple] hover:text-black transition-colors py-2">
+                查看完整网络参数表 · 跳跃连接代码 · 超参数调参记录
+            </summary>
+            <div class="fold-body pt-4 space-y-6">
+                <!-- U-Net 参数表 -->
+                <div>
+                    <h4 class="font-bold text-xs mb-2">▎U-Net 生成器网络参数（8 层编码 + 7 层解码）</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-[10px] border-collapse model-table">
+                            <tr class="border-b border-black/10 text-left">
+                                <th class="py-1 pr-2 text-[--text-muted]">层级</th><th class="py-1 pr-2">操作</th><th class="py-1 pr-2">卷积核</th><th class="py-1 pr-2">输入→输出通道</th><th class="py-1">归一化/激活</th>
+                            </tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">Enc 1-4</td><td class="py-1 pr-2">Conv2d</td><td class="py-1 pr-2">4×4/2</td><td class="py-1 pr-2">3→64→128→256→512</td><td class="py-1">BN + LeakyReLU</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">Enc 5-8</td><td class="py-1 pr-2">Conv2d</td><td class="py-1 pr-2">4×4/2</td><td class="py-1 pr-2">512→512 (×4层)</td><td class="py-1">BN + LeakyReLU + Dropout</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">Dec 1-3</td><td class="py-1 pr-2">ConvTranspose</td><td class="py-1 pr-2">4×4/2</td><td class="py-1 pr-2">512→512 (含跳跃拼接)</td><td class="py-1">BN + ReLU + Dropout</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">Dec 4-7</td><td class="py-1 pr-2">ConvTranspose</td><td class="py-1 pr-2">4×4/2</td><td class="py-1 pr-2">1024→512→256→128→64</td><td class="py-1">BN + ReLU</td></tr>
+                            <tr><td class="py-1 pr-2">Output</td><td class="py-1 pr-2">ConvTranspose</td><td class="py-1 pr-2">4×4/2</td><td class="py-1 pr-2">128→3</td><td class="py-1">Tanh</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 跳跃连接代码 -->
+                <div>
+                    <h4 class="font-bold text-xs mb-2">▎跳跃连接核心实现</h4>
+                    <div class="code-block text-[11px]">
+<span class="code-comment"># models/networks.py — UnetSkipConnectionBlock.forward()</span>
+<span class="code-keyword">def</span> forward(self, x):
+    <span class="code-keyword">if</span> self.outermost:
+        x = self.conv_in(x)          <span class="code-comment"># 下采样</span>
+        x = self.submodule(x)        <span class="code-comment"># 递归中间层</span>
+        x = self.conv_out(x)         <span class="code-comment"># 上采样</span>
+        <span class="code-keyword">return</span> x
+    <span class="code-keyword">else</span>:
+        x_normal = self.conv_in(x)   <span class="code-comment"># 编码器输出（保留）</span>
+        x_mid = self.submodule(x_normal)
+        x_up = self.conv_out(x_mid)  <span class="code-comment"># 解码器输出</span>
+        <span class="code-comment"># 关键：将编码器特征 x_normal 拼接到解码器输出</span>
+        <span class="code-keyword">return</span> torch.cat([x_up, x_normal], 1)
+                    </div>
+                </div>
+
+                <!-- 超参数 -->
+                <div>
+                    <h4 class="font-bold text-xs mb-2">▎超参数配置与调参记录</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-[10px] border-collapse model-table">
+                            <tr class="border-b border-black/10 text-left"><th class="py-1 pr-2 text-[--text-muted]">超参数</th><th class="py-1 pr-2">取值</th><th class="py-1">调参说明</th></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">学习率</td><td class="py-1 pr-2">0.0002</td><td class="py-1 text-[--text-muted]">初始尝试 0.0005 导致损失震荡严重，降至 0.0002 后稳定</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">批大小</td><td class="py-1 pr-2">1</td><td class="py-1 text-[--text-muted]">RTX 4050 6GB 显存限制，增大 batch 理论上更稳定但不具备条件</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">L1 权重 λ</td><td class="py-1 pr-2">100</td><td class="py-1 text-[--text-muted]">λ=10 时结构对应差；λ=1000 时过于保守缺乏真实感；100 为平衡点</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">训练轮数</td><td class="py-1 pr-2">104 epoch</td><td class="py-1 text-[--text-muted]">前 50 epoch 恒定 lr，后 50 epoch 线性衰减至 0</td></tr>
+                            <tr><td class="py-1 pr-2">图像尺寸</td><td class="py-1 pr-2">256×256</td><td class="py-1 text-[--text-muted]">先缩放至 286×286 再随机裁剪，增强尺度鲁棒性</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 03 数据集与预处理 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">数据集与预处理管线</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">FS2K Dataset · 2,104 对配对样本</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm mb-4">
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h4 class="font-bold mb-3">FS2K 数据集概览</h4>
+                <ul class="text-xs text-[--text-muted] space-y-2">
+                    <li>· 人脸照片 2,104 张 + 专业手绘简笔画 2,104 张（一一配对）</li>
+                    <li>· 三种素描风格（Style 1/2/3），多种光照、肤色、年龄段</li>
+                    <li>· 属性标注：性别、微笑、耳环、发色、面部偏转角度等</li>
+                    <li>· 训练集 1,058 对 / 测试集 1,046 对（~50:50）</li>
+                    <li>· 实际有效配对样本：1,296 对</li>
+                </ul>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h4 class="font-bold mb-3">预处理流程</h4>
+                <ol class="text-xs text-[--text-muted] space-y-2 list-decimal list-inside">
+                    <li>格式统一：全部转 JPEG + 3 通道 RGB</li>
+                    <li>文件名对齐：photo/imageXXXX.jpg ↔ sketch/sketchXXXX.jpg</li>
+                    <li>尺寸统一：双线性插值缩放至 256×256</li>
+                    <li>左右拼接：简笔画（左）+ 人脸照片（右）→ 512×256</li>
+                    <li>在线增强：随机水平翻转 (p=0.5) + 缩放裁剪 (286→256)</li>
+                </ol>
+            </div>
+        </div>
+
+        <details class="fold-section">
+            <summary class="text-sm font-bold text-[--accent-purple] hover:text-black transition-colors py-2">
+                查看数据预处理关键代码
+            </summary>
+            <div class="fold-body pt-4">
+                <div class="code-block text-[11px]">
+<span class="code-comment"># 左右拼接：pix2pix 标准输入格式</span>
+img_A = Image.open(os.path.join(fold_A, fname)).resize((256, 256))
+img_B = Image.open(os.path.join(fold_B, new_fname)).resize((256, 256))
+combined = Image.new(<span class="code-string">'RGB'</span>, (512, 256))
+combined.paste(img_A, (0, 0))    <span class="code-comment"># 左侧：简笔画</span>
+combined.paste(img_B, (256, 0))  <span class="code-comment"># 右侧：真实人脸</span>
+combined.save(os.path.join(fold_AB, fname))
+                </div>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 04 两套改进方案 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">从"能用"到"好用"：两套改进方案</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-4">Beyond the Baseline · 解决手绘涂鸦生成模糊的核心痛点</p>
+
+        <div class="bg-orange-50/30 rounded-2xl p-5 border border-orange-100 text-xs text-[--text-muted] mb-8 leading-relaxed">
+            <strong class="text-black">核心痛点：</strong>基础 pix2pix 模型在 FS2K 的<strong class="text-black">专业简笔画</strong>上表现良好，但用户随手画的粗糙涂鸦与训练数据存在明显的<strong class="text-black">域偏移（Domain Gap）</strong>——线条不均匀、比例失调、风格迥异——导致生成人脸模糊甚至扭曲。针对这一问题，我设计了两套互补的改进方案。
+        </div>
+
+        <!-- 方案一 -->
+        <div class="bg-white/50 rounded-2xl p-6 border border-black/5 mb-6">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="tag-pill bg-blue-50 text-blue-600 text-[10px]">方案一</span>
+                <h3 class="font-bold text-sm">检索增强模块：不改变生成模型，用"查找"弥补"生成"</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div class="bg-white/70 p-4 rounded-lg">
+                    <span class="font-bold text-[--accent-blue] block mb-1">特征提取</span>
+                    <span class="text-[--text-muted]">预训练 ResNet50 移除分类头 → 对 385 张真实人脸提取 2048 维特征向量</span>
+                </div>
+                <div class="bg-white/70 p-4 rounded-lg">
+                    <span class="font-bold text-[--accent-blue] block mb-1">FAISS 索引</span>
+                    <span class="text-[--text-muted]">L2 距离索引 → 毫秒级相似度检索 → Top-3 准确率 <strong class="text-black">82%</strong></span>
+                </div>
+                <div class="bg-white/70 p-4 rounded-lg">
+                    <span class="font-bold text-[--accent-blue] block mb-1">前端集成</span>
+                    <span class="text-[--text-muted]">Gradio 画板绘制 → 同时显示生成人脸 + 3 张最相似真实人脸（响应 &lt; 0.1s）</span>
+                </div>
+            </div>
+            <p class="text-xs text-[--text-muted] mt-4 bg-blue-50/30 rounded-lg p-3">
+                <strong class="text-black">核心理念：</strong>当用户手绘简笔画质量较差时，不强迫模型做"不可能的生成"，而是从真实人脸库中检索最匹配的结果作为候选。这是一种<strong class="text-black">务实主义</strong>的工程思维——不追求完美生成，而是追求可用的用户体验。
+            </p>
+        </div>
+
+        <!-- 方案二 -->
+        <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="tag-pill bg-purple-50 text-purple-600 text-[10px]">方案二</span>
+                <h3 class="font-bold text-sm">数据增强 + 模型微调：让模型学会"看懂涂鸦"</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div class="bg-white/70 p-4 rounded-lg">
+                    <span class="font-bold text-[--accent-purple] block mb-1">模拟手绘数据增强</span>
+                    <span class="text-[--text-muted]">弹性变形 (α=50~150, σ=5~15) · 随机擦除 (2%~10%) · 形态学膨胀/腐蚀（改变线条粗细） · 椒盐噪声 (5%)</span>
+                </div>
+                <div class="bg-white/70 p-4 rounded-lg">
+                    <span class="font-bold text-[--accent-purple] block mb-1">低学习率微调</span>
+                    <span class="text-[--text-muted]">加载预训练基础模型 → lr=2e-5（为初始的 1/10）→ 微调 30+30 epoch → G_L1 从 28.5 降至 <strong class="text-black">21.0</strong></span>
+                </div>
+                <div class="bg-white/70 p-4 rounded-lg">
+                    <span class="font-bold text-[--accent-purple] block mb-1">量化提升</span>
+                    <span class="text-[--text-muted]">用户手绘测试集上：FID ↓ ~15% · SSIM ↑ ~28% · 主观生成效果明显改善</span>
+                </div>
+            </div>
+            <p class="text-xs text-[--text-muted] mt-4 bg-purple-50/30 rounded-lg p-3">
+                <strong class="text-black">核心理念：</strong>与其让用户适应模型，不如让模型适应真实用户。通过数据增强模拟"粗糙涂鸦"的分布，并用低学习率微调防止遗忘已学到的专业简笔画知识，在不改变网络结构的前提下显著提升实用性。
+            </p>
+        </div></div>
+</section>
+
+<!-- ==================== 05 实验结果 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">实验结果与分析</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Results · 定量评估 + 定性可视化</p>
+
+        <!-- 核心指标 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center text-sm mb-8">
+            <div class="bg-white/50 rounded-xl p-4 border border-black/5">
+                <div class="text-2xl font-black font-mono-en text-[--accent-purple]">1.50</div>
+                <div class="text-[10px] text-[--text-muted] mt-1">G_GAN (最终 epoch)</div>
+            </div>
+            <div class="bg-white/50 rounded-xl p-4 border border-black/5">
+                <div class="text-2xl font-black font-mono-en text-[--accent-blue]">26.00</div>
+                <div class="text-[10px] text-[--text-muted] mt-1">G_L1 ↓ (31.58 → 26.00)</div>
+            </div>
+            <div class="bg-white/50 rounded-xl p-4 border border-black/5">
+                <div class="text-2xl font-black font-mono-en text-[--accent-amber]">82%</div>
+                <div class="text-[10px] text-[--text-muted] mt-1">检索 Top-3 准确率</div>
+            </div>
+            <div class="bg-white/50 rounded-xl p-4 border border-black/5">
+                <div class="text-2xl font-black font-mono-en text-[--accent-green]">~15%</div>
+                <div class="text-[10px] text-[--text-muted] mt-1">微调后 FID 降低</div>
+            </div>
+        </div>
+
+        <!-- 折叠：完整实验结果 -->
+        <details class="fold-section">
+            <summary class="text-sm font-bold text-[--accent-purple] hover:text-black transition-colors py-2">
+                展开完整实验结果：损失曲线 · 消融实验 · 可视化分析 · FID/SSIM
+            </summary>
+            <div class="fold-body pt-4 space-y-6">
+                <!-- 损失收敛 -->
+                <div>
+                    <h4 class="font-bold text-xs mb-2">▎训练损失收敛（104 epoch）</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-[10px] border-collapse">
+                            <tr class="border-b border-black/10 text-left"><th class="py-1 pr-2">Epoch</th><th class="py-1 pr-2">G_GAN</th><th class="py-1 pr-2">G_L1</th><th class="py-1 pr-2">D_real</th><th class="py-1">D_fake</th></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">1</td><td class="py-1 pr-2">1.797</td><td class="py-1 pr-2 text-[--accent-coral]">31.583</td><td class="py-1 pr-2">0.643</td><td class="py-1">0.091</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">20</td><td class="py-1 pr-2">~1.85</td><td class="py-1 pr-2">~28.50</td><td class="py-1 pr-2">~0.35</td><td class="py-1">~0.28</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">50</td><td class="py-1 pr-2">~1.68</td><td class="py-1 pr-2">~27.20</td><td class="py-1 pr-2">~0.30</td><td class="py-1">~0.32</td></tr>
+                            <tr><td class="py-1 pr-2">104</td><td class="py-1 pr-2 font-bold">~1.50</td><td class="py-1 pr-2 font-bold text-[--accent-green]">~26.00</td><td class="py-1 pr-2 font-bold">~0.28</td><td class="py-1 font-bold">~0.30</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 消融实验 -->
+                <div>
+                    <h4 class="font-bold text-xs mb-2">▎消融实验：各组件的贡献</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-[10px] border-collapse">
+                            <tr class="border-b border-black/10 text-left"><th class="py-1 pr-2">实验配置</th><th class="py-1 pr-2">G_L1</th><th class="py-1">定性评估</th></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2 font-bold">完整模型 (U-Net + PatchGAN + L1 + Dropout)</td><td class="py-1 pr-2">26.00</td><td class="py-1 text-[--accent-green]">轮廓清晰，五官准确</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">移除 L1 损失</td><td class="py-1 pr-2">—</td><td class="py-1 text-red-400">结构不稳定，面部变形</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">移除跳跃连接（普通编码器-解码器）</td><td class="py-1 pr-2">34.20</td><td class="py-1 text-red-400">轮廓模糊，五官偏移</td></tr>
+                            <tr class="border-b border-black/5"><td class="py-1 pr-2">判别器改用图像级（非 PatchGAN）</td><td class="py-1 pr-2">28.50</td><td class="py-1 text-orange-400">局部纹理粗糙</td></tr>
+                            <tr><td class="py-1 pr-2">移除 Dropout</td><td class="py-1 pr-2">29.80</td><td class="py-1 text-orange-400">轻微过拟合</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 可视化 -->
+                <div>
+                    <h4 class="font-bold text-xs mb-2">▎多维可视化分析</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-[10px]">
+                        <div class="bg-white/60 p-3 rounded-lg">
+                            <span class="font-bold block mb-1">特征图可视化</span>
+                            <span class="text-[--text-muted]">浅层响应边缘/轮廓 → 深层聚焦眼/鼻/嘴语义区域。验证了 U-Net 跳跃连接有效保留输入简笔画的结构信息。</span>
+                        </div>
+                        <div class="bg-white/60 p-3 rounded-lg">
+                            <span class="font-bold block mb-1">Grad-CAM 注意力热力图</span>
+                            <span class="text-[--text-muted]">高亮区域集中于眼部、鼻部、嘴部 → 模型学会了将有限的简笔画线条映射到最具判别性的面部部件。</span>
+                        </div>
+                        <div class="bg-white/60 p-3 rounded-lg">
+                            <span class="font-bold block mb-1">t-SNE 特征空间分布</span>
+                            <span class="text-[--text-muted]">真实人脸 vs 生成人脸形成两个相对分离的簇，几乎没有重叠 → FID 偏高（219.11）的直观解释：模型尚未完全学习真实人脸的复杂分布。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FID/SSIM -->
+                <div class="bg-orange-50/30 rounded-xl p-4 text-xs leading-relaxed">
+                    <span class="font-bold text-black block mb-1">量化评估的坦诚结论</span>
+                    <p class="text-[--text-muted]">
+                        FID = <strong class="text-black">219.11</strong>（偏高，优秀模型通常 50~100），SSIM = <strong class="text-black">0.3365</strong>（偏低）。
+                        主要原因：① 训练轮数仅 104 epoch，模型尚未充分收敛；② 256×256 分辨率限制了高频细节；③ 用户手绘与专业简笔画的域偏移。
+                        <strong class="text-black">但这正是课程设计的意义所在——不是追求 SOTA，而是完整地理解一个深度学习系统从数据到部署的全链路，并诚实地分析其局限性。</strong>
+                    </p>
+                </div>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 06 交互系统与工程结构 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">工程结构与交互系统</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Project Structure · Gradio Frontend</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- 项目文件结构 -->
+            <div>
+                <h4 class="font-bold text-sm mb-4">▎仓库文件结构（自定义扩展部分）</h4>
+                <div class="bg-white/50 rounded-xl p-5 border border-black/5 text-xs space-y-1">
+                    <p><code class="text-black bg-black/5 px-1 rounded">train.py</code> — 模型训练主程序</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">test.py</code> — 批量测试与生成</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">augment_sketches.py</code> <span class="text-[--accent-purple] font-bold">★ 自定义</span> — 数据增强脚本（弹性变形/擦除/噪声）</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">build_feature_index.py</code> <span class="text-[--accent-purple] font-bold">★ 自定义</span> — 构建 FAISS 检索索引</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">gradio_demo_retrieval.py</code> <span class="text-[--accent-purple] font-bold">★ 自定义</span> — Gradio 前端（生成 + 检索）</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">gradio_demo_finetune.py</code> <span class="text-[--accent-purple] font-bold">★ 自定义</span> — 支持切换微调模型的 Gradio 前端</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">batch_process.py</code> <span class="text-[--accent-purple] font-bold">★ 自定义</span> — 批量推理脚本</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">visualize_gradcam.py</code> <span class="text-[--accent-purple] font-bold">★ 自定义</span> — Grad-CAM 注意力可视化</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">visualize_tsne.py</code> <span class="text-[--accent-purple] font-bold">★ 自定义</span> — t-SNE 特征空间可视化</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">visualize_feature_maps.py</code> <span class="text-[--accent-purple] font-bold">★ 自定义</span> — 中间层特征图可视化</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">evaluate.py</code> — FID/SSIM 量化评估</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">resume_training.py</code> — 断点续训</p>
+                    <p><code class="text-black bg-black/5 px-1 rounded">copy_fs2k_data.py</code> — FS2K 数据集预处理</p>
+                </div>
+            </div>
+
+            <!-- Gradio 前端 -->
+            <div>
+                <h4 class="font-bold text-sm mb-4">▎Gradio 交互前端</h4>
+                <div class="bg-white/50 rounded-xl p-5 border border-black/5 text-xs space-y-3">
+                    <p class="text-[--text-muted] leading-relaxed">
+                        基于 Gradio 框架开发轻量级 Web 前端，在 PyCharm 终端中运行 <code class="text-black bg-black/5 px-1 rounded">python gradio_demo_retrieval.py</code> 即可启动本地服务（<code class="text-black bg-black/5 px-1 rounded">http://127.0.0.1:7860</code>）。
+                    </p>
+                    <div class="bg-black/5 rounded-lg p-3 space-y-1">
+                        <p><strong>输入区：</strong>256×256 画板（鼠标自由绘制）+ 上传图片按钮</p>
+                        <p><strong>操作区：</strong>"生成并检索"按钮 → 触发后端推理</p>
+                        <p><strong>输出区：</strong>上方显示 pix2pix 生成人脸，下方画廊展示 3 张最相似真实人脸</p>
+                    </div>
+                    <p class="text-[--text-muted]">整个推理过程在 RTX 4050 GPU 上执行，从点击到结果呈现约 <strong class="text-black">0.3 秒</strong>（生成 ~0.1s + 检索 ~0.1s + 通信开销）。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 07 局限与展望 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">局限性与未来展望</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Limitations & Future Work</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+            <div class="space-y-3">
+                <h4 class="font-bold text-xs text-red-400">当前局限</h4>
+                <div class="bg-red-50/30 rounded-xl p-4 text-xs text-[--text-muted] space-y-2">
+                    <p>· 训练数据仅 2,104 对，模型参数量 5,400 万+，数据-容量不匹配</p>
+                    <p>· 6GB 显存限制 batch_size=1 且分辨率仅 256×256</p>
+                    <p>· 极度抽象简笔画（极少线条/比例失调）→ 生成可能扭曲</p>
+                    <p>· 检索库仅 385 张，多样性有限</p>
+                    <p>· FID 偏高（219.11），与 SOTA 存在差距</p>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <h4 class="font-bold text-xs text-[--accent-purple]">未来方向</h4>
+                <div class="bg-purple-50/30 rounded-xl p-4 text-xs text-[--text-muted] space-y-2">
+                    <p>· 引入扩散模型（Diffusion Models）替代 GAN，提升生成细腻度</p>
+                    <p>· 联合 CelebA/FFHQ 等大规模人脸数据集扩充训练</p>
+                    <p>· 知识蒸馏 + 量化 → 轻量化部署至移动端/Web</p>
+                    <p>· 融入属性条件控制（性别/微笑/发色）→ 可控生成</p>
+                    <p>· 优化检索库规模 + IVF/PQ 索引 → 保持毫秒级响应</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="py-16 px-6 border-t border-black/10 text-center gs-fade">
+    <h2 class="text-xl md:text-2xl font-bold font-serif mb-4">"从理论推导到逐行实现，完整走通一个深度学习系统的全链路。"</h2>
+    <div class="flex flex-wrap justify-center gap-4 mt-6 mb-8">
+        <a href="https://github.com/Mobilteee/sketch2face-augmented" target="_blank" class="text-sm font-bold text-[--accent-purple] hover:text-black transition-colors pb-1 border-b border-current">GitHub 仓库</a>
+        <a href="https://github.com/DengPingFan/FS2K" target="_blank" class="text-sm font-bold text-[--accent-purple] hover:text-black transition-colors pb-1 border-b border-current">FS2K 数据集</a>
+        <a href="mailto:zgtl113@outlook.com" class="text-sm font-bold text-[--accent-purple] hover:text-black transition-colors pb-1 border-b border-current">zgtl113@outlook.com</a>
+    </div>
+    <a href="index.html" class="inline-block text-[--text-muted] hover:text-black font-bold transition-colors text-sm">
+        &larr; Back to Home
+    </a>
+</footer>
+
+</div><!-- /smooth-wrapper -->
+
+<script>
+    const lenis = new Lenis({ duration: 1.2 });
+    function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+    requestAnimationFrame(raf);
+
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray('.gs-fade').forEach(elem => {
+        gsap.from(elem, {
+            scrollTrigger: { trigger: elem, start: "top 85%" },
+            y: 30, opacity: 0, duration: 1, ease: "power3.out"
+        });
+    });
+
+    document.querySelectorAll('.fold-section').forEach(section => {
+        section.addEventListener('toggle', () => {
+            if (section.open) {
+                setTimeout(() => {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            }
+        });
+    });
+</script>
+
+<!-- Dock导航 -->
+<nav class="dock-nav">
+<a href="index.html" class="dock-item">Home</a>
+<a href="subpage_betube.html" class="dock-item">BEtube</a>
+<a href="subpage_lan.html" class="dock-item">Subtitle</a>
+<a href="subpage__sketch2face.html" class="dock-item">Sketch2Face</a>
+<a href="subpage_bili.html" class="dock-item">B站</a>
+<a href="subpage_douyin.html" class="dock-item">抖音</a>
+<a href="subpage_liter.html" class="dock-item">Liter</a>
+</nav>
+</body>
+</html>

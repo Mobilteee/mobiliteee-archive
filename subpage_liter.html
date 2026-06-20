@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Narrative & Empathy // MOBILITEEE</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Noto+Serif+SC:wght@400;600;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-warm: #FAF7F2;
+            --text-ink: #2C2416;
+            --text-soft: #8B7E6C;
+            --card-cream: rgba(252, 249, 242, 0.85);
+            --accent-amber: #C7782C;
+            --accent-teal: #3A7D7D;
+            --accent-rose: #C06050;
+            --accent-gold: #B8963E;
+            --border-warm: rgba(140, 120, 90, 0.15);
+        }
+
+        body {
+            background-color: var(--bg-warm); color: var(--text-ink);
+            font-family: 'Inter', -apple-system, 'Noto Serif SC', sans-serif;
+            overflow-x: hidden; -webkit-font-smoothing: antialiased;
+        }
+
+        /* 暖调极光 */
+        .aurora-warm {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2;
+            background: radial-gradient(circle at 15% 30%, rgba(199, 120, 44, 0.08), transparent 50%),
+                        radial-gradient(circle at 85% 60%, rgba(58, 125, 125, 0.06), transparent 50%),
+                        radial-gradient(circle at 50% 80%, rgba(184, 150, 62, 0.06), transparent 50%),
+                        radial-gradient(circle at 40% 20%, rgba(192, 96, 80, 0.05), transparent 40%);
+            filter: blur(80px); animation: warmShift 25s ease-in-out infinite alternate;
+        }
+        @keyframes warmShift { 0% { transform: scale(1) translate(0,0); } 100% { transform: scale(1.08) translate(-15px, 25px); } }
+
+        /* 纸张纹理叠加 */
+        .paper-texture {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
+            pointer-events: none; opacity: 0.25;
+            background-image: url('paper.png');
+            background-size: cover; background-repeat: repeat;
+            mix-blend-mode: multiply;
+        }
+
+        .glass-warm {
+            background: var(--card-cream); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-warm); box-shadow: 0 8px 32px rgba(44, 36, 22, 0.05);
+        }
+        .rounded-super { border-radius: 2rem; }
+
+        .font-mono-en { font-family: 'Space Mono', monospace; }
+        .tag-pill { display: inline-flex; align-items: center; padding: 6px 16px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+
+        /* 折叠面板 */
+        .fold-section { border: none; }
+        .fold-section > summary {
+            list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            user-select: none; -webkit-user-select: none;
+        }
+        .fold-section > summary::-webkit-details-marker { display: none; }
+        .fold-section > summary::before {
+            content: '+'; font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700;
+            transition: transform 0.35s ease; color: var(--accent-amber);
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px; flex-shrink: 0;
+        }
+        .fold-section[open] > summary::before { content: '−'; transform: rotate(180deg); }
+
+        .fold-body {
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+        }
+        .fold-section:not([open]) .fold-body { max-height: 0 !important; opacity: 0; }
+        .fold-section[open] .fold-body { max-height: 12000px; opacity: 1; }
+
+        /* === 文字流动效果 === */
+        .text-drift {
+            animation: driftFloat 8s ease-in-out infinite;
+        }
+        @keyframes driftFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-6px) rotate(0.3deg); }
+            75% { transform: translateY(4px) rotate(-0.3deg); }
+        }
+
+        /* 文字渐现 */
+        .word-reveal {
+            clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+            transition: clip-path 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .word-reveal.visible { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+
+        /* 浮动拼贴元素 */
+        .collage-float {
+            position: absolute; pointer-events: none; opacity: 0.6;
+            transition: transform 0.3s ease;
+            mix-blend-mode: multiply;
+        }
+        .collage-float:hover { transform: scale(1.1) rotate(2deg); opacity: 0.85; }
+
+        /* 底部 Dock 导航 */
+        .dock-nav {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 100; display: flex; gap: 6px; padding: 8px;
+            border-radius: 100px;
+            background: rgba(252, 249, 242, 0.75); backdrop-filter: blur(20px);
+            border: 1px solid var(--border-warm); box-shadow: 0 4px 24px rgba(44,36,22,0.06);
+        }
+        .dock-item {
+            padding: 10px 20px; border-radius: 100px; font-size: 12px; font-weight: 500;
+            color: var(--text-ink); text-decoration: none; transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .dock-item:hover { background: rgba(199, 120, 44, 0.1); color: var(--accent-amber); }
+
+        /* 引用块 */
+        .pullquote {
+            font-family: 'Noto Serif SC', serif; font-size: 1.15rem; font-style: italic;
+            color: var(--text-soft); border-left: 3px solid var(--accent-amber);
+            padding-left: 1.5rem; margin: 1.5rem 0; line-height: 1.8;
+        }
+
+        /* 角色卡 */
+        .character-card {
+            background: rgba(255,255,255,0.5); border: 1px solid var(--border-warm);
+            border-radius: 1rem; padding: 1.25rem; transition: all 0.4s ease;
+        }
+        .character-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(44,36,22,0.08); }
+
+        /* 奔跑的文字条 */
+        .marquee-lit {
+            overflow: hidden; white-space: nowrap;
+            border-top: 1px solid var(--border-warm); border-bottom: 1px solid var(--border-warm);
+            padding: 12px 0; margin: 0;
+        }
+        .marquee-lit-content {
+            display: inline-block; font-family: 'Noto Serif SC', serif;
+            font-size: 14px; color: var(--text-soft); font-style: italic;
+            animation: marqueeSlow 30s linear infinite;
+        }
+        @keyframes marqueeSlow {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        @media (max-width: 768px) {
+            .dock-item { padding: 8px 14px; font-size: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="aurora-warm"></div>
+<div class="paper-texture"></div>
+
+<!-- ==================== 浮动拼贴元素 ==================== -->
+<!-- 茧/蝶意象 — 用 CSS 绘制的装饰 -->
+<div class="collage-float" style="top:12%; left:5%; width:60px; height:60px; border-radius:50%; background:radial-gradient(circle, rgba(199,120,44,0.3), transparent 70%); filter:blur(10px);"></div>
+<div class="collage-float" style="top:35%; right:8%; width:80px; height:80px; border-radius:50%; background:radial-gradient(circle, rgba(58,125,125,0.25), transparent 70%); filter:blur(14px);"></div>
+<div class="collage-float" style="top:60%; left:3%; width:50px; height:50px; border-radius:50%; background:radial-gradient(circle, rgba(192,96,80,0.3), transparent 70%); filter:blur(8px);"></div>
+<div class="collage-float" style="top:75%; right:12%; width:70px; height:70px; border-radius:50%; background:radial-gradient(circle, rgba(184,150,62,0.2), transparent 70%); filter:blur(12px);"></div>
+<!-- 香塔/烟火意象线条 -->
+<div class="collage-float" style="top:20%; right:15%; width:2px; height:120px; background:linear-gradient(to bottom, transparent, rgba(199,120,44,0.4), transparent);"></div>
+<div class="collage-float" style="top:50%; left:10%; width:2px; height:90px; background:linear-gradient(to bottom, transparent, rgba(192,96,80,0.3), transparent);"></div>
+
+<!-- ==================== NAV ==================== -->
+<nav class="fixed top-0 w-full px-6 py-4 md:px-10 md:py-6 flex justify-between items-center z-50 glass-warm">
+    <a href="index.html" class="font-bold tracking-widest hover:text-[--accent-amber] transition-colors flex items-center gap-2 text-sm">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        RETURN
+    </a>
+    <div class="text-xs font-bold uppercase tracking-widest text-[--text-soft]">Creative Intelligence · Narrative & Empathy</div>
+</nav>
+
+<div id="smooth-wrapper">
+
+<!-- ==================== HERO ==================== -->
+<section class="min-h-screen flex flex-col justify-center px-6 md:px-16 max-w-7xl mx-auto pt-24 pb-12">
+    <div class="gs-fade">
+        <span class="tag-pill mb-6" style="background:rgba(199,120,44,0.08);color:var(--accent-amber);">Prompt & Empathy Foundation</span>
+
+        <h1 class="text-5xl md:text-8xl font-black tracking-tight leading-none mb-8" style="font-family:'Noto Serif SC',serif;">
+            跨界叙事<br>语料库
+        </h1>
+
+        <p class="text-lg md:text-xl text-[--text-soft] font-serif max-w-2xl leading-relaxed mb-4">
+            Cross-Border Narrative Corpus & Immersive Experience Design
+        </p>
+        <p class="text-sm md:text-base text-[--text-soft] max-w-xl leading-relaxed">
+            将文学洞察转化为场景体验与 Prompt 语料。从一场<strong class="text-[--text-ink]">100% 互动率</strong>的沉浸式文学沙龙，到三篇探索人性微观结构的原创实验文本——这些不是"文学作品"，而是<strong class="text-[--text-ink]">构建 AI 情感 Prompt 与 RAG 知识库的底层语料</strong>。
+        </p>
+    </div>
+
+    <!-- 文字流动跑马灯 -->
+    <div class="marquee-lit mt-16 gs-fade">
+        <div class="marquee-lit-content">
+            「既想束紧纽带，又想让它松脱」——现代人身处亲密关系洪流中的终极矛盾 · 轮回 · 妈妈 · 爱宠 · 犬之力 · 人类识别指南 ·
+            「既想束紧纽带，又想让它松脱」——现代人身处亲密关系洪流中的终极矛盾 · 轮回 · 妈妈 · 爱宠 · 犬之力 · 人类识别指南 ·
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 01 文学讨论会 ==================== -->
+<section class="py-12 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="mb-8 gs-fade">
+        <span class="tag-pill mb-3" style="background:rgba(58,125,125,0.08);color:var(--accent-teal);">Immersive Experience Design</span>
+        <h2 class="text-3xl md:text-5xl font-black mb-2" style="font-family:'Noto Serif SC',serif;">「人类识别指南」文学讨论会</h2>
+        <p class="text-[--text-soft] text-sm">2024.11 · 校企联合 · 零预算 · 50+ 参与者</p>
+    </div>
+
+    <!-- 核心数据条 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-8 gs-fade">
+        <div class="glass-warm rounded-2xl p-5">
+            <div class="text-3xl font-black font-mono-en" style="color:var(--accent-teal);">95<span class="text-lg">%</span></div>
+            <div class="text-[10px] text-[--text-soft] mt-1">到场率</div>
+        </div>
+        <div class="glass-warm rounded-2xl p-5">
+            <div class="text-3xl font-black font-mono-en" style="color:var(--accent-amber);">100<span class="text-lg">%</span></div>
+            <div class="text-[10px] text-[--text-soft] mt-1">现场发言率</div>
+        </div>
+        <div class="glass-warm rounded-2xl p-5">
+            <div class="text-3xl font-black font-mono-en" style="color:var(--accent-rose);">15<span class="text-lg">+</span></div>
+            <div class="text-[10px] text-[--text-soft] mt-1">提问互动人次</div>
+        </div>
+        <div class="glass-warm rounded-2xl p-5">
+            <div class="text-3xl font-black font-mono-en" style="color:var(--accent-gold);">1.2<span class="text-lg">万字</span></div>
+            <div class="text-[10px] text-[--text-soft] mt-1">会后深度纪要</div>
+        </div>
+    </div>
+
+    <!-- 核心理念 -->
+    <div class="glass-warm rounded-super p-8 md:p-10 gs-fade mb-8">
+        <h3 class="font-bold text-lg mb-4" style="color:var(--accent-teal);">▎从说教到"体验式产品化"</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+            <div>
+                <span class="font-bold block mb-2 text-red-400">传统读书会的问题</span>
+                <p class="text-[--text-soft] leading-relaxed text-xs">
+                    定位死板、互动匮乏、说教意味浓重。参与者被动听讲，难以深度卷入，最终沦为"签到即走"的形式主义活动。
+                </p>
+            </div>
+            <div>
+                <span class="font-bold block mb-2" style="color:var(--accent-teal);">我的解决方案</span>
+                <p class="text-[--text-soft] leading-relaxed text-xs">
+                    以奥斯卡级影片《犬之力》为引爆物，将复杂的异性恋脚本、弗洛伊德攻击行为理论，<strong class="text-[--text-ink]">重组为"选择命运判定游戏"</strong>——用低门槛、高沉浸的玩法彻底激活参与意愿。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 四角色卡 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 gs-fade mb-6">
+        <div class="character-card">
+            <div class="text-xs font-mono-en mb-2" style="color:var(--accent-rose);">角色 A</div>
+            <h4 class="font-bold text-sm mb-1">菲尔 · Phil</h4>
+            <p class="text-[10px] text-[--text-soft] leading-relaxed">耶鲁毕业的深柜牛仔。用暴虐与控制伪装自我，对弟弟和露丝母子施加精神霸凌，最终死于彼得的"温柔陷阱"。</p>
+        </div>
+        <div class="character-card">
+            <div class="text-xs font-mono-en mb-2" style="color:var(--accent-teal);">角色 B</div>
+            <h4 class="font-bold text-sm mb-1">乔治 · George</h4>
+            <p class="text-[10px] text-[--text-soft] leading-relaxed">软弱的家庭守护者。用沉默与温柔对抗兄长的霸凌，试图保护婚姻与家庭，却对菲尔的痛苦一无所知。</p>
+        </div>
+        <div class="character-card">
+            <div class="text-xs font-mono-en mb-2" style="color:var(--accent-amber);">角色 C</div>
+            <h4 class="font-bold text-sm mb-1">萝丝 · Rose</h4>
+            <p class="text-[10px] text-[--text-soft] leading-relaxed">附庸风雅的餐馆老板。在菲尔的偏见与霸凌中走向抑郁与酗酒，不希望儿子与菲尔有任何接触。</p>
+        </div>
+        <div class="character-card">
+            <div class="text-xs font-mono-en mb-2" style="color:var(--accent-gold);">角色 D</div>
+            <h4 class="font-bold text-sm mb-1">彼得 · Peter</h4>
+            <p class="text-[10px] text-[--text-soft] leading-relaxed">年轻、阴柔、敏感且冷酷。利用医学知识设局，以炭疽病毒杀死菲尔，解救母亲脱离男权熔炉。在理智与仇恨之间，他是"无法被染指的教皇"。</p>
+        </div>
+    </div>
+
+    <!-- 折叠：完整复盘 -->
+    <details class="fold-section gs-fade">
+        <summary class="text-sm font-bold hover:text-[--accent-amber] transition-colors py-2" style="color:var(--accent-teal);">
+            展开完整运营复盘：预热→执行→沉淀的全链路
+        </summary>
+        <div class="fold-body pt-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div class="glass-warm rounded-xl p-5">
+                    <span class="font-bold block mb-2" style="color:var(--accent-amber);">① 预热期</span>
+                    <p class="text-[--text-soft] leading-relaxed mb-2">Z世代痛点共鸣文案策划，在QQ社群、微信社群等精准圈层裂变发布。</p>
+                    <p class="text-[--text-soft]"><strong class="text-[--text-ink]">成果：</strong>成功招募 50+ 深度兴趣用户，到场率 95%。</p>
+                </div>
+                <div class="glass-warm rounded-xl p-5">
+                    <span class="font-bold block mb-2" style="color:var(--accent-teal);">② 现场执行</span>
+                    <p class="text-[--text-soft] leading-relaxed mb-2">游戏化破冰 → 现场抽取"人物问题卡牌" → 互动机制穿插引导讨论。4人限制性剧本游戏机制，将心理学理论转化为现场情感投射。</p>
+                    <p class="text-[--text-soft]"><strong class="text-[--text-ink]">成果：</strong>讨论现场发言率 100%，提问互动量 15+ 人次。</p>
+                </div>
+                <div class="glass-warm rounded-xl p-5">
+                    <span class="font-bold block mb-2" style="color:var(--accent-rose);">③ 沉淀期</span>
+                    <p class="text-[--text-soft] leading-relaxed mb-2">深度复盘、产出 1.2 万字会后讨论纪要，沉淀为高黏性内容资产。多渠道内容输出，反哺社团社群流量裂变。</p>
+                    <p class="text-[--text-soft]"><strong class="text-[--text-ink]">成果：</strong>实现活动粉丝全量引流社团，为私域池提供高频裂变钩子。</p>
+                </div>
+            </div>
+            <!-- 核心意象 -->
+            <div class="glass-warm rounded-xl p-5 mt-4 text-xs">
+                <span class="font-bold block mb-2" style="color:var(--accent-gold);">🎭 核心意象与文学映射</span>
+                <p class="text-[--text-soft] leading-relaxed">
+                    <strong class="text-[--text-ink]">犬之力 (Power of the Dog)：</strong>只有同属边缘人的彼得和菲尔，能看出远山"张大嘴巴的狂吠之犬"，喻示同类本性的本能识别。
+                    <strong class="text-[--text-ink]">玫瑰与死亡：</strong>"玫瑰的死亡更具吸引力，美不仅是完整的，美也是悲伤与逝去。"用西尔维亚·普拉斯与菲茨杰拉德的悲剧文本，解构影片中的极致爱恨。
+                </p>
+            </div>
+        </div>
+    </details>
+</section>
+
+<!-- ==================== 02 三则实验文本 ==================== -->
+<section class="py-12 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="mb-10 gs-fade">
+        <span class="tag-pill mb-3" style="background:rgba(192,96,80,0.08);color:var(--accent-rose);">Experimental Narrative Corpus</span>
+        <h2 class="text-3xl md:text-5xl font-black mb-2" style="font-family:'Noto Serif SC',serif;">三则原创实验文本</h2>
+        <p class="text-[--text-soft] text-sm max-w-xl leading-relaxed">
+            这些不是"文学作品"，而是为 AI 情感 Prompt 与 RAG 知识库准备的<strong class="text-[--text-ink]">底层语料</strong>。
+            每篇文本探索一种特定的情感微观结构，可作为 MCN 情感内容、品牌叙事、AI 拟人化交互的参考素材。
+        </p>
+    </div>
+
+    <!-- ===== 轮回 ===== -->
+    <div class="glass-warm rounded-super p-8 md:p-12 mb-8 gs-fade" style="position:relative;overflow:hidden;">
+        <!-- 装饰元素：香塔线条 + 蝴蝶 -->
+        <div style="position:absolute;top:10%;right:5%;opacity:0.15;font-size:120px;transform:rotate(15deg);">🦋</div>
+        <div style="position:absolute;bottom:8%;left:3%;width:60px;height:2px;background:linear-gradient(90deg,var(--accent-amber),transparent);opacity:0.3;"></div>
+
+        <div class="flex flex-col md:flex-row justify-between items-start gap-6 mb-6" style="position:relative;z-index:1;">
+            <div>
+                <span class="tag-pill mb-3" style="background:rgba(199,120,44,0.08);color:var(--accent-amber);">Text 01</span>
+                <h3 class="text-2xl md:text-3xl font-black" style="font-family:'Noto Serif SC',serif;">《轮回》</h3>
+                <p class="text-[--text-soft] text-xs mt-1">Reincarnation · 约 2,400 字</p>
+            </div>
+            <div class="flex flex-wrap gap-2 text-[10px]">
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">家族叙事</span>
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">魔幻现实主义</span>
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">身份异化</span>
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">感官叙事</span>
+            </div>
+        </div>
+
+        <!-- 摘要可见，全文折叠 -->
+        <div style="position:relative;z-index:1;">
+            <p class="text-sm text-[--text-soft] leading-relaxed mb-3">
+                除夕夜，一个家族围坐饭堂。叙述者带着年幼的弟弟去点燃高香，在烟火与幻象交织的夜晚，
+                目睹了家族中"妖魔鬼怪"的现形——被猫附身的奶奶、纵火的孙家小童、身份不断偷换的弟弟。
+                当香塔倒塌、打火机被掷碎，叙述者在火焰中经历了一场象征性的死亡与重生。
+            </p>
+
+            <!-- 关键意象标签 -->
+            <div class="flex flex-wrap gap-2 mb-4">
+                <span class="text-[10px] text-[--text-soft]">核心意象：</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(199,120,44,0.08);color:var(--accent-amber);">打火机</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(199,120,44,0.08);color:var(--accent-amber);">香塔</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(199,120,44,0.08);color:var(--accent-amber);">猫</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(199,120,44,0.08);color:var(--accent-amber);">烟花</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(199,120,44,0.08);color:var(--accent-amber);">茧/重生</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(199,120,44,0.08);color:var(--accent-amber);">弟弟</span>
+            </div>
+
+            <details class="fold-section">
+                <summary class="text-xs font-bold hover:text-[--accent-amber] transition-colors py-2" style="color:var(--accent-teal);">
+                    阅读全文 · 适用场景说明
+                </summary>
+                <div class="fold-body pt-2 space-y-4">
+                    <div class="text-xs text-[--text-soft] leading-relaxed bg-white/40 rounded-xl p-5 max-h-64 overflow-y-auto">
+                        <p class="font-bold text-[--text-ink] mb-2">全文摘录：</p>
+                        <p>"触摸屏幕的手指停滞，有人递过打火机，质感粗糙，样式老旧，透明塑料外壳下油状物质缓慢变黄..."</p>
+                        <p>"门外横陈大路，汽车似乎在爆竹声中被迫绝迹，只剩左右人行道上还有三三两两的老人孩童，像是某种公式的标准演绎..."</p>
+                        <p>"蠕动，吐丝，成茧，你感受到自己被温暖的黑暗包裹起来。抽离，挤压，窒息，血肉横飞，硬壳之下是粘稠的蛋白体，你终于遍布每一寸空气..."</p>
+                        <p>"小童刀光一闪，剪掉了你与这个世界的脐带。——'恭喜，孩子平安出生。'"</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div class="bg-white/40 rounded-xl p-4">
+                            <span class="font-bold text-[--text-ink] block mb-1">📌 应用方向</span>
+                            <span class="text-[--text-soft]">MV 故事板 / 短视频情绪脚本。感官密度极高的新年场景 + 代际冲突 + 象征性重生叙事，适合拆解为情感类短剧的意象素材。</span>
+                        </div>
+                        <div class="bg-white/40 rounded-xl p-4">
+                            <span class="font-bold text-[--text-ink] block mb-1">🧠 AI Prompt 价值</span>
+                            <span class="text-[--text-soft]">提供"感官触发式叙事"的密集语料样本：如何用气味、触感、温度变化来推进情绪，而非依赖情节说明。可用于训练/微调文学风格生成 Prompt。</span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <!-- ===== 妈妈 ===== -->
+    <div class="glass-warm rounded-super p-8 md:p-12 mb-8 gs-fade" style="position:relative;overflow:hidden;">
+        <div style="position:absolute;top:15%;right:8%;opacity:0.12;font-size:100px;transform:rotate(-10deg);">💻</div>
+        <div style="position:absolute;bottom:10%;left:6%;opacity:0.12;font-size:90px;">🌵</div>
+
+        <div class="flex flex-col md:flex-row justify-between items-start gap-6 mb-6" style="position:relative;z-index:1;">
+            <div>
+                <span class="tag-pill mb-3" style="background:rgba(58,125,125,0.08);color:var(--accent-teal);">Text 02</span>
+                <h3 class="text-2xl md:text-3xl font-black" style="font-family:'Noto Serif SC',serif;">《妈妈》</h3>
+                <p class="text-[--text-soft] text-xs mt-1">Mother · 约 3,000 字</p>
+            </div>
+            <div class="flex flex-wrap gap-2 text-[10px]">
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">AI 伦理</span>
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">代际隔阂</span>
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">虚拟亲密</span>
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">双线叙事</span>
+            </div>
+        </div>
+
+        <div style="position:relative;z-index:1;">
+            <p class="text-sm text-[--text-soft] leading-relaxed mb-3">
+                两条叙事线交织：一边是刚离婚的母亲试图与即将高考的女儿甘香椿建立沟通，
+                另一边是女儿在电脑上打开一个 AI 程序，命令它"你现在是我的妈妈"。
+                当真实的母亲在门外敲门送车厘子，女儿却在与虚拟妈妈争吵："你现在很陌生，妈妈，我正在和你割裂。"
+            </p>
+
+            <div class="flex flex-wrap gap-2 mb-4">
+                <span class="text-[10px] text-[--text-soft]">核心意象：</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(58,125,125,0.08);color:var(--accent-teal);">AI 对话界面</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(58,125,125,0.08);color:var(--accent-teal);">仙人掌</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(58,125,125,0.08);color:var(--accent-teal);">离婚证书</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(58,125,125,0.08);color:var(--accent-teal);">门</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(58,125,125,0.08);color:var(--accent-teal);">车厘子</span>
+            </div>
+
+            <details class="fold-section">
+                <summary class="text-xs font-bold hover:text-[--accent-amber] transition-colors py-2" style="color:var(--accent-teal);">
+                    阅读全文 · 适用场景说明
+                </summary>
+                <div class="fold-body pt-2 space-y-4">
+                    <div class="text-xs text-[--text-soft] leading-relaxed bg-white/40 rounded-xl p-5 max-h-64 overflow-y-auto">
+                        <p class="font-bold text-[--text-ink] mb-2">全文摘录：</p>
+                        <p>"女儿尝试唤醒我。很显然她还没有学会如何正确调整我的运作参数，我只能睁开眼睛略带怜悯地看着这个脸色阴郁的孩子在电脑上快速地输入指令。'你现在是我的妈妈，和我进行对话。'"</p>
+                        <p>"'甘香椿，我们来聊聊妈妈吧，你是最喜欢妈妈的对吧，你想让妈妈做什么呢？'罕见的，这个女孩居然沉默了..."</p>
+                        <p>"门外传来声响，有人在敲门，用很温柔的语气问：'要不要吃车厘子？''你放在外面，我一会出来。'女孩声音沉闷，作为一个高尚的机器我旁观着这一荒谬情景的出现，门外站着她自己的妈妈，却还要在虚拟妈妈我这里浪费时间..."</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div class="bg-white/40 rounded-xl p-4">
+                            <span class="font-bold text-[--text-ink] block mb-1">📌 应用方向</span>
+                            <span class="text-[--text-soft]">科技/人文品牌账号内容脚本。探讨 AI 时代亲密关系的替代与异化，适合科技伦理、数字人文类选题。</span>
+                        </div>
+                        <div class="bg-white/40 rounded-xl p-4">
+                            <span class="font-bold text-[--text-ink] block mb-1">🧠 AI Prompt 价值</span>
+                            <span class="text-[--text-soft]">提供"AI 与人类冷博弈"的对话语料：机器如何回应人类的情感投射？人类如何将期望强加于非人对象？可用于设计 AI 角色扮演 Prompt 的边界条件。</span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <!-- ===== 爱宠 ===== -->
+    <div class="glass-warm rounded-super p-8 md:p-12 gs-fade" style="position:relative;overflow:hidden;">
+        <div style="position:absolute;top:8%;right:10%;opacity:0.12;font-size:110px;transform:rotate(20deg);">🐕</div>
+        <div style="position:absolute;bottom:12%;left:8%;opacity:0.1;font-size:80px;">🕳️</div>
+
+        <div class="flex flex-col md:flex-row justify-between items-start gap-6 mb-6" style="position:relative;z-index:1;">
+            <div>
+                <span class="tag-pill mb-3" style="background:rgba(192,96,80,0.08);color:var(--accent-rose);">Text 03</span>
+                <h3 class="text-2xl md:text-3xl font-black" style="font-family:'Noto Serif SC',serif;">《爱宠》</h3>
+                <p class="text-[--text-soft] text-xs mt-1">Beloved Pet · 约 2,200 字</p>
+            </div>
+            <div class="flex flex-wrap gap-2 text-[10px]">
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">依恋关系</span>
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">驯养与权力</span>
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">友情终结</span>
+                <span class="tag-pill" style="background:rgba(0,0,0,0.03);">感官记忆</span>
+            </div>
+        </div>
+
+        <div style="position:relative;z-index:1;">
+            <p class="text-sm text-[--text-soft] leading-relaxed mb-3">
+                捡回一只野生小兽，为它打扫窝、喂食、按在怀里蹂躏。"这是养殖，"叙述者定了定神，"一边养，一边殖，稳定的关系就是这么生成的。"
+                穿插高中时奶奶养的小黑狗、与挚友长达一年半的沉默决裂——当她在深夜发现小兽睡在自己左手边，她终于意识到：
+                她养出了一枚死胎，而她才是她的弃宠。
+            </p>
+
+            <div class="flex flex-wrap gap-2 mb-4">
+                <span class="text-[10px] text-[--text-soft]">核心意象：</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(192,96,80,0.08);color:var(--accent-rose);">野生小兽</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(192,96,80,0.08);color:var(--accent-rose);">小黑狗</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(192,96,80,0.08);color:var(--accent-rose);">地下室·井</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(192,96,80,0.08);color:var(--accent-rose);">芒果冰淇淋</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full" style="background:rgba(192,96,80,0.08);color:var(--accent-rose);">弃宠</span>
+            </div>
+
+            <details class="fold-section">
+                <summary class="text-xs font-bold hover:text-[--accent-amber] transition-colors py-2" style="color:var(--accent-teal);">
+                    阅读全文 · 适用场景说明
+                </summary>
+                <div class="fold-body pt-2 space-y-4">
+                    <div class="text-xs text-[--text-soft] leading-relaxed bg-white/40 rounded-xl p-5 max-h-64 overflow-y-auto">
+                        <p class="font-bold text-[--text-ink] mb-2">全文摘录：</p>
+                        <p>"对于突然升起的怜爱情绪她是这么想的，不如捡回家，当作镇土之灵，每天早出晚归拜拜，好吃好喝的供着，代替它的粉红色带刺小舌打理毛发..."</p>
+                        <p>"她恍惚了一下，时间被拉长到三年，她恍惚了三年，随后发现她养出了一枚死胎，而她才是她的弃宠。"</p>
+                        <p>"这是养殖，她定了定神。一边养，一边殖，稳定的关系就是这么生成的。她窃喜着自己的生活小发现，随后往手中的活物身体中低头埋了下去，闻到一种温煦的宠物沐浴露味道...这种味道是她亲手赋予，私自接收，说明所有权已固定，说明这种病态关系已养成，两者都从中获益。"</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div class="bg-white/40 rounded-xl p-4">
+                            <span class="font-bold text-[--text-ink] block mb-1">📌 应用方向</span>
+                            <span class="text-[--text-soft]">MCN 情感类内容脚本 / 生活方式产品营销文案。将"驯养"与"被驯养"的权力关系映射到现代人的依恋模式，适合 Z世代情绪安全话题。</span>
+                        </div>
+                        <div class="bg-white/40 rounded-xl p-4">
+                            <span class="font-bold text-[--text-ink] block mb-1">🧠 AI Prompt 价值</span>
+                            <span class="text-[--text-soft]">提供"人与动物/人与人之间的权力倒置"叙事模型：如何用宠物喂养的日常细节映射情感关系的控制与依赖。可用于情感类 Prompt 的场景构建语料。</span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 03 能力映射 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass-warm rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-6" style="font-family:'Noto Serif SC',serif;">这个板块证明了什么</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm">
+            <div class="text-center bg-white/40 rounded-2xl p-6">
+                <div class="text-3xl mb-3">🎭</div>
+                <h4 class="font-bold mb-2">体验式活动设计</h4>
+                <p class="text-xs text-[--text-soft] leading-relaxed">
+                    不满足于"办一场读书会"。用游戏化机制重组文学理论，将生硬的心理学概念转化为可感知的角色命运选择。100% 互动率不是运气，是设计。
+                </p>
+            </div>
+            <div class="text-center bg-white/40 rounded-2xl p-6">
+                <div class="text-3xl mb-3">📝</div>
+                <h4 class="font-bold mb-2">文本为 Prompt 语料</h4>
+                <p class="text-xs text-[--text-soft] leading-relaxed">
+                    三篇实验文本各有明确的"可迁移场景"：MV故事板、AI对话设计、情感文案脚本。文学能力不是孤立的，它是构建 AI 情感 Prompt 的底层训练数据。
+                </p>
+            </div>
+            <div class="text-center bg-white/40 rounded-2xl p-6">
+                <div class="text-3xl mb-3">🔗</div>
+                <h4 class="font-bold mb-2">全链路运营闭环</h4>
+                <p class="text-xs text-[--text-soft] leading-relaxed">
+                    从预热裂变 → 现场执行 → 会后沉淀，1.2万字深度纪要变成二次传播资产。这不是"办个活动"，而是内容产品的全生命周期管理。
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="py-20 px-6 border-t text-center gs-fade" style="border-color:var(--border-warm);">
+    <h2 class="text-xl md:text-2xl font-bold mb-4" style="font-family:'Noto Serif SC',serif;color:var(--text-soft);">"将不可见的情绪，转化为可计算的语料。"</h2>
+    <div class="flex flex-wrap justify-center gap-6 mt-6 mb-4">
+        <a href="人类识别指南—亲密关系.pdf" download class="text-sm font-bold hover:text-[--accent-amber] transition-colors pb-1 border-b border-current inline-flex items-center gap-1" style="color:var(--accent-teal);">
+            📄 人类识别指南 PDF
+        </a>
+        <a href="mobiliteee.zip" download class="text-sm font-bold hover:text-[--accent-amber] transition-colors pb-1 border-b border-current inline-flex items-center gap-1" style="color:var(--accent-rose);">
+            📦 三则文本 + 复盘 PPT 打包下载
+        </a>
+        <a href="mailto:zgtl113@outlook.com" class="text-sm font-bold hover:text-[--accent-amber] transition-colors pb-1 border-b border-current" style="color:var(--accent-teal);">zgtl113@outlook.com</a>
+    </div>
+    <p class="text-[10px] text-[--text-soft] mb-24">包含《轮回》《妈妈》《爱宠》全文 + 文学讨论会完整复盘 PPT</p>
+</footer>
+
+</div><!-- /smooth-wrapper -->
+
+<!-- ==================== 底部 Dock 导航 ==================== -->
+<nav class="dock-nav">
+    <a href="index.html" class="dock-item">Home</a>
+    <a href="subpage_betube.html" class="dock-item">BEtube</a>
+    <a href="subpage_lan.html" class="dock-item">Subtitle</a>
+    <a href="subpage__sketch2face.html" class="dock-item">Sketch2Face</a>
+    <a href="subpage_bili.html" class="dock-item">B站</a>
+    <a href="subpage_douyin.html" class="dock-item">抖音</a>
+    <a href="subpage_liter.html" class="dock-item" style="background:rgba(199,120,44,0.12);color:var(--accent-amber);">Liter</a>
+</nav>
+
+<script>
+    // Lenis 平滑滚动
+    const lenis = new Lenis({ duration: 1.2 });
+    function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+    requestAnimationFrame(raf);
+
+    // GSAP 滚动渐现
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray('.gs-fade').forEach(elem => {
+        gsap.from(elem, {
+            scrollTrigger: { trigger: elem, start: "top 88%" },
+            y: 30, opacity: 0, duration: 1, ease: "power3.out"
+        });
+    });
+
+    // 文字飘浮动画
+    gsap.utils.toArray('.text-drift').forEach(elem => {
+        gsap.to(elem, {
+            scrollTrigger: { trigger: elem, start: "top bottom", end: "bottom top", scrub: 0.5 },
+            y: -15, ease: "none"
+        });
+    });
+
+    // 拼贴元素的视差浮动
+    gsap.utils.toArray('.collage-float').forEach((elem, i) => {
+        gsap.to(elem, {
+            scrollTrigger: { trigger: "body", start: "top top", end: "bottom bottom", scrub: 0.3 },
+            y: (i % 2 === 0) ? -30 : 20,
+            x: (i % 3 === 0) ? 10 : -8,
+            ease: "none"
+        });
+    });
+
+    // 折叠面板平滑滚动
+    document.querySelectorAll('.fold-section').forEach(section => {
+        section.addEventListener('toggle', () => {
+            if (section.open) {
+                setTimeout(() => {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

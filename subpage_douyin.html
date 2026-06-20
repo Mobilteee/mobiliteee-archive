@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>抖音爆款操盘 // MOBILITEEE</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;800&family=Space+Mono:ital,wght@0,400;0,700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #F5F5F7;
+            --text-main: #1D1D1F;
+            --text-muted: #86868B;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --accent-orange: #FF5A1F;
+            --accent-blue: #0071E3;
+            --accent-green: #34C759;
+            --accent-black: #111827;
+        }
+
+        body {
+            background-color: var(--bg-color); color: var(--text-main);
+            font-family: 'Inter', -apple-system, 'Noto Serif SC', sans-serif;
+            overflow-x: hidden; -webkit-font-smoothing: antialiased;
+        }
+
+        .aurora-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2;
+            background: radial-gradient(circle at 15% 30%, rgba(255, 90, 31, 0.10), transparent 50%),
+                        radial-gradient(circle at 85% 60%, rgba(255, 90, 31, 0.06), transparent 50%),
+                        radial-gradient(circle at 50% 80%, rgba(0, 0, 0, 0.04), transparent 50%);
+            filter: blur(60px); animation: auroraMove 20s ease-in-out infinite alternate;
+        }
+        @keyframes auroraMove { 0% { transform: scale(1) translate(0,0); } 100% { transform: scale(1.1) translate(-20px, 20px); } }
+
+        .glass {
+            background: var(--card-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+        }
+        .rounded-super { border-radius: 2rem; }
+
+        .font-mono-en { font-family: 'Space Mono', monospace; }
+        .tag-pill { display: inline-flex; align-items: center; padding: 6px 16px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+
+        .text-douyin { color: var(--accent-orange); }
+        .bg-douyin { background: rgba(255, 90, 31, 0.08); }
+
+        .fold-section { border: none; }
+        .fold-section > summary {
+            list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            user-select: none; -webkit-user-select: none;
+        }
+        .fold-section > summary::-webkit-details-marker { display: none; }
+        .fold-section > summary::before {
+            content: '+'; font-family: 'Space Mono', monospace; font-size: 1.2rem; font-weight: 700;
+            transition: transform 0.35s ease; color: var(--accent-orange);
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; flex-shrink: 0;
+        }
+        .fold-section[open] > summary::before { content: '−'; transform: rotate(180deg); }
+
+        .fold-body {
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+        }
+        .fold-section:not([open]) .fold-body { max-height: 0 !important; opacity: 0; }
+        .fold-section[open] .fold-body { max-height: 8000px; opacity: 1; }
+
+        /* 数据条 */
+        .metric-bar {
+            height: 6px; border-radius: 3px; background: rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .metric-bar-fill { height: 100%; border-radius: 3px; }
+    /* 底部Dock导航 */
+.dock-nav{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:100;display:flex;gap:5px;padding:7px 10px;border-radius:100px;background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);box-shadow:0 4px 24px rgba(0,0,0,0.06);}
+.dock-item{padding:8px 16px;border-radius:100px;font-size:11px;font-weight:500;color:var(--text-main);text-decoration:none;transition:all 0.3s ease;white-space:nowrap;}
+.dock-item:hover{background:rgba(0,0,0,0.05);}
+</style>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+
+<!-- ==================== NAV ==================== -->
+<nav class="fixed top-0 w-full px-6 py-4 md:px-10 md:py-6 flex justify-between items-center z-50 glass">
+    <a href="index.html" class="font-bold tracking-widest hover:text-[--accent-orange] transition-colors flex items-center gap-2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        RETURN
+    </a>
+    <div class="text-xs font-bold uppercase tracking-widest text-[--text-muted]">Douyin · Short-Form Growth</div>
+</nav>
+
+<div id="smooth-wrapper">
+
+<!-- ==================== HERO ==================== -->
+<section class="min-h-screen flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto pt-24 pb-12">
+    <div class="gs-fade">
+        <span class="tag-pill bg-douyin text-douyin mb-6">Content Growth Lab · Douyin Short-Form Matrix</span>
+        <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6">
+            Mobiliteee
+        </h1>
+        <p class="text-xl md:text-2xl text-[--text-muted] font-serif max-w-3xl leading-relaxed mb-4">
+            抖音国际生活切片矩阵 · 573 万+累计播放
+        </p>
+        <p class="text-base md:text-lg text-[--text-muted] max-w-2xl leading-relaxed mb-8">
+            独立运营的抖音账号，内容方向为<strong class="text-black">海外校园日常 / 跨文化生活反差 / POV 沉浸式场景</strong>。
+            单条最高点赞 <strong class="text-black">54 万</strong>，最高完播率 <strong class="text-black">38.12%</strong>（远超平台均值 15-25%），
+            最高 2 秒留存率 <strong class="text-black">77.35%</strong>。
+        </p>
+        <p class="text-xs text-[--text-muted] bg-white/50 rounded-xl p-3 inline-block mb-8 leading-relaxed max-w-2xl">
+            ⚠️ 账号于 2026 年 4-6 月经历停更期，目前正基于新的 AI 翻译管线（见 <a href="subpage_lan.html" class="text-[--accent-blue] underline">AI 双语字幕工作流</a>）重启内容矩阵。
+        </p>
+
+        <div class="flex flex-wrap gap-4">
+            <a href="https://www.douyin.com/user/MS4wLjABAAAAcA5t0f3eCPztgxGig-KmHkVIZ5xgiCAJEVdTOi93F_pRhX5LLPZCj5rGFMf-S2JU" target="_blank" class="glass px-8 py-4 rounded-full font-bold hover:bg-[--accent-orange] hover:text-white transition-all shadow-md flex items-center gap-2">
+                <span class="text-douyin">▶</span> 抖音主页
+            </a>
+            <a href="https://mobilteee.github.io/mobiliteee_profile/" target="_blank" class="glass px-8 py-4 rounded-full font-bold hover:bg-black hover:text-white transition-all shadow-md flex items-center gap-2">
+                作品集原站
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 定位：与B站差异化 ==================== -->
+<section class="py-12 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h3 class="text-sm font-bold uppercase tracking-widest text-[--text-muted] mb-6">▎同一创作者，两种内容逻辑</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+            <div class="bg-pink-50/30 rounded-2xl p-6 border border-pink-100">
+                <h4 class="font-bold mb-3">B站「莫比里的房子鹅」</h4>
+                <ul class="space-y-1 text-xs text-[--text-muted]">
+                    <li>· 长视频 3-15min · K-pop 深度分析</li>
+                    <li>· 核心指标：<strong class="text-black">评论率 0.2%</strong></li>
+                    <li>· 做的是<strong class="text-black">信任与圈层</strong></li>
+                </ul>
+            </div>
+            <div class="bg-orange-50/30 rounded-2xl p-6 border border-orange-100 border-t-2 border-[--accent-orange]">
+                <h4 class="font-bold mb-3">抖音「Mobiliteee」</h4>
+                <ul class="space-y-1 text-xs text-[--text-muted]">
+                    <li>· 短视频 15-60s · 海外生活反差</li>
+                    <li>· 核心指标：<strong class="text-black">完播率 38.12% · 2s留存 77.35%</strong></li>
+                    <li>· 做的是<strong class="text-black">Hook 与传播广度</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 01 账号核心数据 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">账号核心数据</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Douyin Channel Overview</p>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center mb-8">
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5">
+                <div class="text-2xl md:text-3xl font-black font-mono-en text-[--accent-orange]">573<span class="text-lg">万+</span></div>
+                <div class="text-[10px] text-[--text-muted] mt-2">累计播放量</div>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5">
+                <div class="text-2xl md:text-3xl font-black font-mono-en text-[--accent-black]">54<span class="text-lg">万</span></div>
+                <div class="text-[10px] text-[--text-muted] mt-2">单条最高点赞</div>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5">
+                <div class="text-2xl md:text-3xl font-black font-mono-en text-[--accent-green]">38.12<span class="text-lg">%</span></div>
+                <div class="text-[10px] text-[--text-muted] mt-2">最高完播率</div>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5">
+                <div class="text-2xl md:text-3xl font-black font-mono-en text-[--accent-blue]">77.35<span class="text-lg">%</span></div>
+                <div class="text-[10px] text-[--text-muted] mt-2">最高 2 秒留存</div>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5">
+                <div class="text-2xl md:text-3xl font-black font-mono-en text-[--accent-orange]">13.6<span class="text-lg">万</span></div>
+                <div class="text-[10px] text-[--text-muted] mt-2">单条最高转发</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 02 爆款案例逐条拆解 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="mb-8 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">爆款视频逐条拆解</h2>
+        <p class="text-[--text-muted] font-serif text-sm">Top 5 Performing Videos · 附完整数据指标</p>
+    </div>
+
+    <!-- Video 1: 带随机物品来学校 -->
+    <div class="glass rounded-super p-6 md:p-10 mb-8 gs-fade">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+            <div>
+                <span class="tag-pill bg-orange-50 text-orange-600 mb-2">Top 1</span>
+                <h3 class="text-xl font-bold font-serif">带随机物品来学校</h3>
+            </div>
+            <a href="https://v.douyin.com/-cmMKnVs3ZA/" target="_blank" class="text-xs text-[--accent-orange] underline flex-shrink-0">▶ 观看原视频</a>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center mb-6">
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en text-[--accent-orange]">223<span class="text-xs">万+</span></div><div class="text-[10px] text-[--text-muted]">播放</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">54<span class="text-xs">万</span></div><div class="text-[10px] text-[--text-muted]">点赞</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">13.6<span class="text-xs">万</span></div><div class="text-[10px] text-[--text-muted]">转发</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en text-[--accent-green]">20.79<span class="text-xs">%</span></div><div class="text-[10px] text-[--text-muted]">完播率</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en text-[--accent-blue]">77.35<span class="text-xs">%</span></div><div class="text-[10px] text-[--text-muted]">2秒留存</div></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            <div class="bg-white/50 rounded-xl p-4">
+                <span class="font-bold text-[--accent-orange] block mb-2">📌 内容特征</span>
+                <p class="text-[--text-muted] leading-relaxed">海外校园场景：学生被要求携带"随机物品"到校。开篇即展示最荒谬的物品（悬念 Hook），利用中外校园文化的差异制造反差笑点。内容类型：<strong class="text-black">轻娱乐 + 跨文化反差</strong>。</p>
+            </div>
+            <div class="bg-white/50 rounded-xl p-4">
+                <span class="font-bold text-[--accent-blue] block mb-2">🧠 为什么爆</span>
+                <p class="text-[--text-muted] leading-relaxed">77.35% 的 2 秒留存证明 Hook 极其有效——观众在前 3 秒看到了"预期违背"的画面，好奇心驱动完播。高转发量（13.6 万）说明内容具有<strong class="text-black">社交货币属性</strong>——"你见过带这种东西上学的吗？"天然适合分享给朋友。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video 2: DJ与选手配合名场面 -->
+    <div class="glass rounded-super p-6 md:p-10 mb-8 gs-fade">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+            <div>
+                <span class="tag-pill bg-orange-50 text-orange-600 mb-2">Top 2</span>
+                <h3 class="text-xl font-bold font-serif">DJ 与选手配合名场面</h3>
+            </div>
+            <a href="https://v.douyin.com/6V4L0Xz4NWQ/" target="_blank" class="text-xs text-[--accent-orange] underline flex-shrink-0">▶ 观看原视频</a>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center mb-6">
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en text-[--accent-orange]">223<span class="text-xs">万+</span></div><div class="text-[10px] text-[--text-muted]">播放</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">7.8<span class="text-xs">万</span></div><div class="text-[10px] text-[--text-muted]">点赞</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">1,204</div><div class="text-[10px] text-[--text-muted]">评论</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en text-[--accent-green]">38.12<span class="text-xs">%</span></div><div class="text-[10px] text-[--text-muted]">完播率 ★最高</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">—</div><div class="text-[10px] text-[--text-muted]">2秒留存</div></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            <div class="bg-white/50 rounded-xl p-4">
+                <span class="font-bold text-[--accent-orange] block mb-2">📌 内容特征</span>
+                <p class="text-[--text-muted] leading-relaxed">K-pop 选秀节目高能瞬间：DJ 打碟时选手即兴配合的舞台名场面。内容类型：<strong class="text-black">粉丝向高能切片 + 舞台魅力展示</strong>。</p>
+            </div>
+            <div class="bg-white/50 rounded-xl p-4">
+                <span class="font-bold text-[--accent-blue] block mb-2">🧠 为什么爆</span>
+                <p class="text-[--text-muted] leading-relaxed"><strong class="text-black">38.12% 完播率远超平台大盘指标</strong>（均值 15-25%）。这不是靠 Hook 技巧做到的——而是靠<strong class="text-black">精准触达粉丝情感共鸣点</strong>。1,204 条评论说明内容激发了圈层讨论。高完播 + 高互动 = 算法连续推流，这是 223 万播放的核心引擎。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video 3: POV:亚特兰大护士学校 -->
+    <div class="glass rounded-super p-6 md:p-10 mb-8 gs-fade">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+            <div>
+                <span class="tag-pill bg-orange-50 text-orange-600 mb-2">Top 3</span>
+                <h3 class="text-xl font-bold font-serif">POV：亚特兰大护士学校</h3>
+            </div>
+            <a href="https://v.douyin.com/8lXlAKHFm8E/" target="_blank" class="text-xs text-[--accent-orange] underline flex-shrink-0">▶ 观看原视频</a>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center mb-6">
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en text-[--accent-orange]">153<span class="text-xs">万+</span></div><div class="text-[10px] text-[--text-muted]">播放</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">11.3<span class="text-xs">万</span></div><div class="text-[10px] text-[--text-muted]">点赞</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">3.5<span class="text-xs">万</span></div><div class="text-[10px] text-[--text-muted]">收藏</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">—</div><div class="text-[10px] text-[--text-muted]">完播率</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">—</div><div class="text-[10px] text-[--text-muted]">2秒留存</div></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            <div class="bg-white/50 rounded-xl p-4">
+                <span class="font-bold text-[--accent-orange] block mb-2">📌 内容特征</span>
+                <p class="text-[--text-muted] leading-relaxed">第一人称 POV（Point of View）沉浸式视角：模拟"在亚特兰大护士学校的一天"。内容类型：<strong class="text-black">角色扮演 + 轻娱乐 + 海外职业教育体验</strong>。</p>
+            </div>
+            <div class="bg-white/50 rounded-xl p-4">
+                <span class="font-bold text-[--accent-blue] block mb-2">🧠 为什么爆</span>
+                <p class="text-[--text-muted] leading-relaxed"><strong class="text-black">3.5 万收藏</strong>是这条视频最亮眼的指标——收藏意味着用户将内容视为"有用/有趣到值得反复看"。POV 形式天然具有代入感，将"护士学校"这个国内用户陌生的场景游戏化为可消费的<strong class="text-black">轻娱乐内容</strong>。策略本质：<strong class="text-black">将 niche 场景用大众娱乐语言重新包装</strong>。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video 4: 晚读开始 DNA -->
+    <div class="glass rounded-super p-6 md:p-10 mb-8 gs-fade">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+            <div>
+                <span class="tag-pill bg-black/5 text-[--text-muted] mb-2">Top 4</span>
+                <h3 class="text-xl font-bold font-serif">晚读开始 #DNA #kendricklamar</h3>
+            </div>
+            <a href="https://v.douyin.com/KOX2KwLh6m0/" target="_blank" class="text-xs text-[--accent-orange] underline flex-shrink-0">▶ 观看原视频</a>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center mb-6">
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en text-[--accent-orange]">4.5<span class="text-xs">万</span></div><div class="text-[10px] text-[--text-muted]">点赞</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">1.2<span class="text-xs">万</span></div><div class="text-[10px] text-[--text-muted]">转发</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">2,232</div><div class="text-[10px] text-[--text-muted]">收藏</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">308</div><div class="text-[10px] text-[--text-muted]">评论</div></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            <div class="bg-white/50 rounded-xl p-4">
+                <span class="font-bold text-[--accent-orange] block mb-2">📌 内容特征</span>
+                <p class="text-[--text-muted] leading-relaxed">Kendrick Lamar《DNA》节奏挑战 + DJ 转场。内容类型：<strong class="text-black">音乐卡点 + 高能节奏 + 粉丝向二创</strong>。属于典型的"听觉 Hook"型内容——音乐本身的节奏冲击力就是最好的留存工具。</p>
+            </div>
+            <div class="bg-white/50 rounded-xl p-4">
+                <span class="font-bold text-[--accent-blue] block mb-2">🧠 为什么爆</span>
+                <p class="text-[--text-muted] leading-relaxed">2,232 收藏 + 1.2 万转发的组合说明这条视频同时具备<strong class="text-black">"有用"（收藏=想跟着做）和"社交货币"（转发=让朋友也看）</strong>双重属性。节奏挑战类内容天然具有"模仿链"——一个人看了 → 收藏 → 做自己的版本 → @朋友 → 形成传播裂变。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video 5: 精力充沛的学生们 -->
+    <div class="glass rounded-super p-6 md:p-10 gs-fade">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+            <div>
+                <span class="tag-pill bg-black/5 text-[--text-muted] mb-2">Top 5</span>
+                <h3 class="text-xl font-bold font-serif">精力充沛的学生们 #学生 #国外生活 #搞笑</h3>
+            </div>
+            <a href="https://v.douyin.com/IY8BKYBnb1Q/" target="_blank" class="text-xs text-[--accent-orange] underline flex-shrink-0">▶ 观看原视频</a>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-2 gap-3 text-center mb-6">
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">67</div><div class="text-[10px] text-[--text-muted]">评论</div></div>
+            <div class="bg-white/50 rounded-xl p-3"><div class="text-lg font-black font-mono-en">搬运</div><div class="text-[10px] text-[--text-muted]">内容类型</div></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            <div class="bg-white/50 rounded-xl p-4">
+                <span class="font-bold text-[--accent-orange] block mb-2">📌 内容特征</span>
+                <p class="text-[--text-muted] leading-relaxed">海外课堂搞笑合集：学生们精力过剩的名场面混剪。评论区典型互动是 @朋友"下周我们也这样"——内容天然具有<strong class="text-black">社交裂变属性</strong>。搬运自海外素材，标题和标签做了本土化处理。作者在评论区主动标注"对的呀，我是搬运"，建立了透明信任。</p>
+            </div>
+            <div class="bg-white/50 rounded-xl p-4">
+                <span class="font-bold text-[--accent-blue] block mb-2">🧠 为什么爆</span>
+                <p class="text-[--text-muted] leading-relaxed">评论区关键词：<strong class="text-black">"@朋友"出现频率极高</strong>——内容核心传播机制是"这好像我们/你"的朋友圈社交裂变。同时"美式自由""国内会被老师砍"等对比性评论表明，<strong class="text-black">中外校园文化反差</strong>是内容引发讨论的底层驱动力。即使是搬运内容，精准的选题嗅觉同样创造高播放。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 03 数据洞察 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">跨视频数据洞察</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">What the Data Tells Us Across All 5 Videos</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h4 class="font-bold mb-3 text-[--accent-orange]">发现 ①：反差是最大的流量杠杆</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    Top 1（带随机物品来学校）和 Top 3（POV 护士学校）的共同点：<strong class="text-black">将中国用户熟悉的日常框架（学校）植入海外陌生内容（随机物品规则 / 护士职业教育）</strong>。熟悉感降低认知门槛，陌生感提供新奇价值。"熟悉+陌生"的反差组合 = 短视频传播的最优解。
+                </p>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h4 class="font-bold mb-3 text-[--accent-blue]">发现 ②：两种爆款逻辑，而非一种</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    Top 1 靠<strong class="text-black">Hook</strong>（77.35% 2秒留存 → 算法推流）；Top 2 靠<strong class="text-black">圈层共鸣</strong>（38.12% 完播率 → 深度互动）。两种完全不同的爆款路径：前者是"让算法喜欢"，后者是"让粉丝喜欢"。最好的策略是<strong class="text-black">两条腿走路</strong>——用 Hook 型内容做增长，用圈层型内容做留存。
+                </p>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h4 class="font-bold mb-3 text-[--accent-green]">发现 ③：转发 ≠ 点赞，收藏 ≠ 喜欢</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    Top 1 的 13.6 万转发说明内容具有<strong class="text-black">社交货币</strong>属性（用户转发是为了表达"我也是这样的人"/"你见过吗"）。Top 3 的 3.5 万收藏说明内容具有<strong class="text-black">工具/参考价值</strong>。不同互动行为对应不同的用户动机，运营不能只看"总互动量"。
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 04 能力映射 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">这个项目证明了什么</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Skills Demonstrated</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5 text-center">
+                <div class="text-3xl mb-3">📊</div>
+                <h4 class="font-bold mb-2">数据颗粒度分析</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    不满足于"播放量多少"，细分到完播率、2秒留存、转发/点赞比、收藏意图——用多维度数据交叉定位一条视频真正的传播引擎。
+                </p>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5 text-center">
+                <div class="text-3xl mb-3">🌍</div>
+                <h4 class="font-bold mb-2">跨文化内容嗅觉</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    能持续发现中外文化差异中的"可传播点"：将海外日常转化为国内用户感到新奇但又不完全陌生的内容。这是纯本土运营难以复制的差异化能力。
+                </p>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5 text-center">
+                <div class="text-3xl mb-3">🔄</div>
+                <h4 class="font-bold mb-2">双平台差异化操盘</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    B站做长视频深度信任（评论率 0.2%），抖音做短视频广度传播（完播率 38.12%）。同一创作者，两种内容逻辑——证明的是跨平台的策略思维，而非单渠道技巧。
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="py-16 px-6 border-t border-black/10 text-center gs-fade">
+    <h2 class="text-xl md:text-2xl font-bold font-serif mb-4">"不靠投流，靠理解内容传播的底层数学。"</h2>
+    <div class="flex flex-wrap justify-center gap-4 mt-6 mb-8">
+        <a href="https://www.douyin.com/user/MS4wLjABAAAAcA5t0f3eCPztgxGig-KmHkVIZ5xgiCAJEVdTOi93F_pRhX5LLPZCj5rGFMf-S2JU" target="_blank" class="text-sm font-bold text-[--accent-orange] hover:text-black transition-colors pb-1 border-b border-current">抖音主页</a>
+        <a href="subpage_bili.html" class="text-sm font-bold text-[--accent-orange] hover:text-black transition-colors pb-1 border-b border-current">B站矩阵（对照阅读）</a>
+        <a href="https://mobilteee.github.io/mobiliteee_profile/" target="_blank" class="text-sm font-bold text-[--accent-orange] hover:text-black transition-colors pb-1 border-b border-current">完整作品集</a>
+        <a href="mailto:zgtl113@outlook.com" class="text-sm font-bold text-[--accent-orange] hover:text-black transition-colors pb-1 border-b border-current">zgtl113@outlook.com</a>
+    </div>
+    <a href="index.html" class="inline-block text-[--text-muted] hover:text-black font-bold transition-colors text-sm">
+        &larr; Back to Home
+    </a>
+</footer>
+
+</div>
+
+<script>
+    const lenis = new Lenis({ duration: 1.2 });
+    function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+    requestAnimationFrame(raf);
+
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray('.gs-fade').forEach(elem => {
+        gsap.from(elem, {
+            scrollTrigger: { trigger: elem, start: "top 85%" },
+            y: 30, opacity: 0, duration: 1, ease: "power3.out"
+        });
+    });
+
+    document.querySelectorAll('.fold-section').forEach(section => {
+        section.addEventListener('toggle', () => {
+            if (section.open) {
+                setTimeout(() => {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            }
+        });
+    });
+</script>
+
+<!-- Dock导航 -->
+<nav class="dock-nav">
+<a href="index.html" class="dock-item">Home</a>
+<a href="subpage_betube.html" class="dock-item">BEtube</a>
+<a href="subpage_lan.html" class="dock-item">Subtitle</a>
+<a href="subpage__sketch2face.html" class="dock-item">Sketch2Face</a>
+<a href="subpage_bili.html" class="dock-item">B站</a>
+<a href="subpage_douyin.html" class="dock-item">抖音</a>
+<a href="subpage_liter.html" class="dock-item">Liter</a>
+</nav>
+</body>
+</html>

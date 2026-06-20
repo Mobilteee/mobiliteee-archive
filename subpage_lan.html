@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Subtitle Workflow // MOBILITEEE</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;800&family=Space+Mono:ital,wght@0,400;0,700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #F5F5F7;
+            --text-main: #1D1D1F;
+            --text-muted: #86868B;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --accent-blue: #0071E3;
+            --accent-green: #34C759;
+            --accent-purple: #AF52DE;
+            --accent-orange: #FF9500;
+            --accent-teal: #5AC8FA;
+        }
+
+        body {
+            background-color: var(--bg-color); color: var(--text-main);
+            font-family: 'Inter', -apple-system, 'Noto Serif SC', sans-serif;
+            overflow-x: hidden; -webkit-font-smoothing: antialiased;
+        }
+
+        .aurora-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2;
+            background: radial-gradient(circle at 20% 40%, rgba(0, 113, 227, 0.10), transparent 50%),
+                        radial-gradient(circle at 80% 60%, rgba(52, 199, 89, 0.08), transparent 50%),
+                        radial-gradient(circle at 50% 80%, rgba(90, 200, 250, 0.08), transparent 50%);
+            filter: blur(60px); animation: auroraMove 20s ease-in-out infinite alternate;
+        }
+        @keyframes auroraMove { 0% { transform: scale(1) translate(0,0); } 100% { transform: scale(1.1) translate(-20px, 20px); } }
+
+        .glass {
+            background: var(--card-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+        }
+        .rounded-super { border-radius: 2rem; }
+
+        .font-mono-en { font-family: 'Space Mono', monospace; }
+        .tag-pill { display: inline-flex; align-items: center; padding: 6px 16px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+
+        /* 折叠面板 */
+        .fold-section { border: none; }
+        .fold-section > summary {
+            list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            user-select: none; -webkit-user-select: none;
+        }
+        .fold-section > summary::-webkit-details-marker { display: none; }
+        .fold-section > summary::before {
+            content: '+'; font-family: 'Space Mono', monospace; font-size: 1.2rem; font-weight: 700;
+            transition: transform 0.35s ease; color: var(--accent-blue);
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; flex-shrink: 0;
+        }
+        .fold-section[open] > summary::before { content: '−'; transform: rotate(180deg); }
+
+        .fold-body {
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+        }
+        .fold-section:not([open]) .fold-body { max-height: 0 !important; opacity: 0; }
+        .fold-section[open] .fold-body { max-height: 8000px; opacity: 1; }
+
+        /* 定位表 */
+        .positioning-table td { padding: 12px 20px; font-size: 14px; }
+        .positioning-table td:first-child { color: #FF4B4B; font-weight: 600; text-align: right; white-space: nowrap; }
+        .positioning-table td:nth-child(2) { color: var(--text-muted); padding: 0 8px; text-align: center; }
+        .positioning-table td:last-child { color: var(--accent-blue); font-weight: 600; }
+
+        /* 管线步骤 */
+        .pipeline-step { position: relative; }
+        .pipeline-step::after {
+            content: '↓'; position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+            color: var(--text-muted); font-size: 14px; font-family: 'Space Mono', monospace;
+        }
+        .pipeline-step:last-child::after { content: ''; }
+
+        /* 代码块 */
+        .code-block { background: #1E1E1E; color: #D4D4D4; border-radius: 1rem; padding: 1.25rem; font-family: 'Space Mono'; font-size: 12px; overflow-x: auto; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); line-height: 1.6; }
+        .code-keyword { color: #569CD6; } .code-string { color: #CE9178; } .code-comment { color: #6A9955; }
+
+        @media (max-width: 768px) {
+            .positioning-table td { padding: 8px 10px; font-size: 11px; }
+        }
+    /* 底部Dock导航 */
+.dock-nav{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:100;display:flex;gap:5px;padding:7px 10px;border-radius:100px;background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);box-shadow:0 4px 24px rgba(0,0,0,0.06);}
+.dock-item{padding:8px 16px;border-radius:100px;font-size:11px;font-weight:500;color:var(--text-main);text-decoration:none;transition:all 0.3s ease;white-space:nowrap;}
+.dock-item:hover{background:rgba(0,0,0,0.05);}
+</style>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+
+<!-- ==================== NAV ==================== -->
+<nav class="fixed top-0 w-full px-6 py-4 md:px-10 md:py-6 flex justify-between items-center z-50 glass">
+    <a href="index.html" class="font-bold tracking-widest hover:text-[--accent-blue] transition-colors flex items-center gap-2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        RETURN
+    </a>
+    <div class="text-xs font-bold uppercase tracking-widest text-[--text-muted]">Project 02 · AI Workflow</div>
+</nav>
+
+<div id="smooth-wrapper">
+
+<!-- ==================== HERO ==================== -->
+<section class="min-h-screen flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto pt-24 pb-12">
+    <div class="gs-fade">
+        <span class="tag-pill bg-teal-50 text-teal-600 mb-6">AI Video Localization Pipeline</span>
+        <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6">
+            AI 双语字幕<br>自动化生成工作流
+        </h1>
+        <p class="text-xl md:text-2xl text-[--text-muted] font-serif max-w-3xl leading-relaxed mb-4">
+            Faster Whisper · DeepSeek Translation · FFmpeg
+        </p>
+        <p class="text-base md:text-lg text-[--text-muted] max-w-2xl leading-relaxed mb-10">
+            搬运翻译一条 <strong class="text-black">1 小时英文娱乐访谈</strong>，传统手工字幕流程需要
+            <strong class="text-black">4-6 小时</strong>的听译 + 打轴 + 校对。通过本地部署 Faster Whisper Large-v1 模型 +
+            DeepSeek v4-flash 翻译 API + FFmpeg 字幕烧制，将全流程压缩至 <strong class="text-black">约 15 分钟</strong>（含人工校对）。
+        </p>
+
+        <div class="flex flex-wrap gap-4">
+            <a href="https://www.bilibili.com/video/BV1AiJK6rELe/" target="_blank" class="glass px-8 py-4 rounded-full font-bold hover:bg-[--accent-blue] hover:text-white transition-all shadow-md flex items-center gap-2">
+                ▶ B站成品视频
+            </a>
+            <a href="https://github.com/WEIFENG2333/VideoCaptioner" target="_blank" class="glass px-8 py-4 rounded-full font-bold hover:bg-black hover:text-white transition-all shadow-md flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                GitHub: VideoCaptioner
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 定位卡片（前置） ==================== -->
+<section class="py-12 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h3 class="text-sm font-bold uppercase tracking-widest text-[--text-muted] mb-6">▎What This Project Demonstrates</h3>
+        <div class="overflow-x-auto">
+            <table class="positioning-table w-full">
+                <tr class="border-b border-black/5">
+                    <td>❌ 装个软件点按钮</td><td>→</td><td>✅ 模型选型 · 本地 GPU 部署 · 管线串联</td>
+                </tr>
+                <tr class="border-b border-black/5">
+                    <td>❌ 调个现成 API</td><td>→</td><td>✅ 本地运行 Whisper 大模型 + 外部翻译 API 协同</td>
+                </tr>
+                <tr class="border-b border-black/5">
+                    <td>❌ 简单转码导出</td><td>→</td><td>✅ CUDA 加速推理 · FFmpeg 分段烧制 · 双语字幕合成</td>
+                </tr>
+                <tr>
+                    <td>❌ 能跑就行</td><td>→</td><td>✅ 1h 长视频工程化处理 · 内存管理 · 中断恢复</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 01 痛点 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">传统字幕工作流的瓶颈</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Why Automation Matters</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- 旧流程 -->
+            <div class="bg-red-50/30 rounded-2xl p-6 border border-red-100">
+                <h4 class="font-bold text-sm text-red-500 mb-4 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-red-400"></span> 传统手工流程 · 1h 视频 ≈ 4-6h
+                </h4>
+                <div class="space-y-2 text-xs text-[--text-muted]">
+                    <div class="p-3 bg-white/60 rounded-lg">① 人工听译：反复回放、查词典、确认俚语 → <strong class="text-black">2-3h</strong></div>
+                    <div class="p-3 bg-white/60 rounded-lg">② 手动打轴：逐句对齐时间戳 → <strong class="text-black">1-1.5h</strong></div>
+                    <div class="p-3 bg-white/60 rounded-lg">③ 双语校对：检查翻译准确性、统一术语 → <strong class="text-black">1-1.5h</strong></div>
+                    <div class="p-3 bg-white/60 rounded-lg">④ 字幕烧制：导入剪辑软件，渲染导出 → <strong class="text-black">0.5-1h</strong></div>
+                </div>
+                <p class="text-xs text-red-400 mt-4 font-bold">瓶颈：无法规模化。每多搬运一条视频，就要多投入半天。</p>
+            </div>
+
+            <!-- 新流程 -->
+            <div class="bg-green-50/30 rounded-2xl p-6 border border-green-100">
+                <h4 class="font-bold text-sm text-[--accent-green] mb-4 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[--accent-green]"></span> AI 自动化管线 · 1h 视频 ≈ 15min（含校对）
+                </h4>
+                <div class="space-y-2 text-xs text-[--text-muted]">
+                    <div class="p-3 bg-white/60 rounded-lg">① Faster Whisper 语音转文字 → <strong class="text-black">~5min（GPU加速）</strong></div>
+                    <div class="p-3 bg-white/60 rounded-lg">② DeepSeek 翻译 API 批量翻译 → <strong class="text-black">~2min</strong></div>
+                    <div class="p-3 bg-white/60 rounded-lg">③ 人工校对 + 术语修正 → <strong class="text-black">~5min</strong></div>
+                    <div class="p-3 bg-white/60 rounded-lg">④ FFmpeg 自动烧制双语字幕 → <strong class="text-black">~3min（分段并行）</strong></div>
+                </div>
+                <p class="text-xs text-[--accent-green] mt-4 font-bold">结果：效率提升 16-24 倍。管线可复用，第二条视频只需校对环节。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 02 技术方案 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">技术方案与模型选型</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Architecture & Decision-Making</p>
+
+        <!-- 始终可见：四层管线 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm mb-8">
+            <div class="bg-white/50 rounded-xl p-5 border border-black/5 text-center pipeline-step">
+                <div class="font-mono-en text-xs text-[--accent-blue] mb-2">Layer 1</div>
+                <h4 class="font-bold mb-1">音频提取</h4>
+                <p class="text-xs text-[--text-muted]">FFmpeg 分离音轨<br>16kHz 单声道</p>
+            </div>
+            <div class="bg-white/50 rounded-xl p-5 border border-black/5 text-center pipeline-step">
+                <div class="font-mono-en text-xs text-[--accent-purple] mb-2">Layer 2</div>
+                <h4 class="font-bold mb-1">语音转录</h4>
+                <p class="text-xs text-[--text-muted]">Faster Whisper Large-v1<br>CUDA GPU 加速</p>
+            </div>
+            <div class="bg-white/50 rounded-xl p-5 border border-black/5 text-center pipeline-step">
+                <div class="font-mono-en text-xs text-[--accent-teal] mb-2">Layer 3</div>
+                <h4 class="font-bold mb-1">翻译引擎</h4>
+                <p class="text-xs text-[--text-muted]">DeepSeek v4-flash API<br>英文 → 简体中文</p>
+            </div>
+            <div class="bg-white/50 rounded-xl p-5 border border-black/5 text-center">
+                <div class="font-mono-en text-xs text-[--accent-green] mb-2">Layer 4</div>
+                <h4 class="font-bold mb-1">字幕合成</h4>
+                <p class="text-xs text-[--text-muted]">FFmpeg 分段烧制<br>双语 SRT + 硬字幕</p>
+            </div>
+        </div>
+
+        <!-- 折叠：模型选型详情 -->
+        <details class="fold-section">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                模型选型决策：为什么是 Large-v1 而不是 Base
+            </summary>
+            <div class="fold-body pt-4 space-y-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <tr class="border-b border-black/10 text-left">
+                            <th class="py-2 pr-4 text-[--text-muted]">候选模型</th><th class="py-2 pr-4">参数量</th><th class="py-2 pr-4">英文 WER↓</th><th class="py-2 pr-4">推理速度 (GPU)</th><th class="py-2">判定</th>
+                        </tr>
+                        <tr class="border-b border-black/5">
+                            <td class="py-2 pr-4 font-mono-en text-xs">tiny</td><td class="py-2 pr-4">39M</td><td class="py-2 pr-4">~7.5%</td><td class="py-2 pr-4 text-[--accent-green]">极快</td><td class="py-2 text-red-400">❌ 精度不足</td>
+                        </tr>
+                        <tr class="border-b border-black/5">
+                            <td class="py-2 pr-4 font-mono-en text-xs">base</td><td class="py-2 pr-4">74M</td><td class="py-2 pr-4">~6.2%</td><td class="py-2 pr-4 text-[--accent-green]">很快</td><td class="py-2 text-orange-400">⚠️ AI 建议可接受</td>
+                        </tr>
+                        <tr class="border-b border-black/5">
+                            <td class="py-2 pr-4 font-mono-en text-xs">small</td><td class="py-2 pr-4">244M</td><td class="py-2 pr-4">~5.0%</td><td class="py-2 pr-4 text-black">快</td><td class="py-2 text-orange-400">⚠️ 仍存风险</td>
+                        </tr>
+                        <tr class="border-b border-black/5">
+                            <td class="py-2 pr-4 font-mono-en text-xs">medium</td><td class="py-2 pr-4">769M</td><td class="py-2 pr-4">~4.3%</td><td class="py-2 pr-4 text-orange-400">中等</td><td class="py-2 text-black">考虑过</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 pr-4 font-mono-en text-xs font-bold text-[--accent-blue]">large-v1 ✅</td><td class="py-2 pr-4 font-bold">1.55B</td><td class="py-2 pr-4 font-bold">~3.8%</td><td class="py-2 pr-4 text-[--accent-blue]">可接受（GPU）</td><td class="py-2 text-[--accent-blue] font-bold">✅ 最终选择</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="bg-blue-50/50 rounded-xl p-5 text-xs leading-relaxed">
+                    <span class="font-bold text-[--accent-blue] block mb-2">🎯 选型逻辑</span>
+                    <p class="text-[--text-muted]">
+                        AI（ChatGPT）建议使用 <strong>base</strong> 模型即可满足日常字幕需求。但这条访谈视频的特殊性在于：
+                    </p>
+                    <ul class="space-y-1 mt-2 text-[--text-muted] list-disc pl-4">
+                        <li>受访者为 <strong class="text-black">Z 世代欧美艺人</strong>，大量使用当代俚语、网络流行语、连读吞音</li>
+                        <li>base 模型在这些场景下的词错率（WER）实测比标准英语高出 2-3 倍</li>
+                        <li>作为上传到公域平台的 UP 主内容，<strong class="text-black">字幕准确性直接影响观众体验和账号口碑</strong></li>
+                        <li>权衡后决定：牺牲 GPU 推理时间（Large-v1 约 5min vs base 约 1min），换取可接受的转写精度</li>
+                    </ul>
+                    <p class="text-[--text-muted] mt-2">这是典型的 <strong class="text-black">精度 vs 速度</strong> 工程权衡。在这个场景中，精度是硬需求。</p>
+                </div>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 03 部署过程 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">本地部署与管线串联</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Deployment & Configuration</p>
+
+        <!-- 四张配置卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h4 class="font-bold text-sm mb-3 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[--accent-blue]"></span> CUDA 环境配置
+                </h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    检测本地 NVIDIA GPU → 安装匹配的 CUDA Toolkit 和 cuDNN → 验证 <code class="text-black bg-black/5 px-1 rounded">nvidia-smi</code> 可识别 GPU →
+                    Faster Whisper 自动调用 CUDA 后端进行 FP16 推理加速。转录 1 小时音频耗时约 5 分钟，对比纯 CPU 推理提升约 6-8 倍。
+                </p>
+            </div>
+
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h4 class="font-bold text-sm mb-3 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[--accent-purple]"></span> FFmpeg 环境变量
+                </h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    下载 FFmpeg 二进制文件 → 将 <code class="text-black bg-black/5 px-1 rounded">ffmpeg/bin</code> 添加至系统 PATH →
+                    命令行验证 <code class="text-black bg-black/5 px-1 rounded">ffmpeg -version</code> → VideoCaptioner 通过 subprocess 调用 FFmpeg 执行音频提取和字幕烧制。
+                </p>
+            </div>
+
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h4 class="font-bold text-sm mb-3 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[--accent-teal]"></span> Faster Whisper Large-v1
+                </h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    首次运行自动下载 1.55B 参数模型（约 3GB）→ 加载至 GPU 显存 →
+                    配置 VAD（语音活动检测）过滤静音段 → 输出带时间戳的逐句文本 → 自动生成 SRT 字幕文件。
+                </p>
+            </div>
+
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h4 class="font-bold text-sm mb-3 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[--accent-green]"></span> DeepSeek v4-flash 翻译 API
+                </h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    自费充值 DeepSeek API 额度 → 生成 API Key → 在 VideoCaptioner 中配置 endpoint →
+                    英文 SRT → 逐句调用 DeepSeek v4-flash 翻译为简体中文 → 输出双语 SRT（英语原文 + 中文译文）。
+                </p>
+            </div>
+        </div>
+
+        <!-- 折叠：配置要点 -->
+        <details class="fold-section mt-6">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                查看配置要点与环境变量示例
+            </summary>
+            <div class="fold-body pt-4">
+                <div class="code-block text-xs">
+<span class="code-comment"># === CUDA 可用性验证 ===</span>
+<span class="code-keyword">$</span> nvidia-smi
+<span class="code-comment"># 确认 GPU 驱动版本、CUDA 版本、可用显存</span>
+
+<span class="code-comment"># === FFmpeg 环境变量 (Windows PowerShell) ===</span>
+<span class="code-keyword">$env:Path</span> += <span class="code-string">";C:\ffmpeg\bin"</span>
+<span class="code-comment"># 或永久添加至：系统属性 → 环境变量 → Path</span>
+
+<span class="code-comment"># === Faster Whisper 模型加载 ===</span>
+<span class="code-comment"># VideoCaptioner 首次运行时自动下载 large-v1 模型</span>
+<span class="code-comment"># 模型路径：~/.cache/huggingface/hub/models--Systran--faster-whisper-large-v1/</span>
+
+<span class="code-comment"># === DeepSeek API 配置 ===</span>
+<span class="code-comment"># 在 VideoCaptioner 设置界面填入：</span>
+<span class="code-comment"># API Base: https://api.deepseek.com/v1</span>
+<span class="code-comment"># API Key:  sk-xxxxxxxx</span>
+<span class="code-comment"># Model:    deepseek-chat (v4-flash)</span>
+                </div>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 04 关键问题与解决 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">工程难题与解决方案</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Troubleshooting · 1 小时长视频的工程挑战</p>
+
+        <div class="bg-orange-50/30 rounded-2xl p-6 border border-orange-100 mb-6">
+            <div class="flex items-start gap-3 mb-4">
+                <span class="text-2xl flex-shrink-0">⚠️</span>
+                <div>
+                    <h4 class="font-bold text-sm">核心问题：长视频烧制字幕时 FFmpeg 中断</h4>
+                    <p class="text-xs text-[--text-muted] mt-2 leading-relaxed">
+                        1 小时的视频文件体积大（源文件约 8GB），直接调用 FFmpeg 烧制内嵌字幕时，进程在约 70% 处崩溃退出。
+                        根因分析：单次 FFmpeg 编码需将整个视频流加载至内存，1 小时素材的帧缓存超出系统可用资源，触发 OOM（内存溢出）。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-green-50/30 rounded-2xl p-6 border border-green-100">
+            <div class="flex items-start gap-3 mb-4">
+                <span class="text-2xl flex-shrink-0">✅</span>
+                <div>
+                    <h4 class="font-bold text-sm">解决方案：三段式分段烧制 + 无损拼接</h4>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <!-- 方案 1 -->
+                <div class="bg-white/70 rounded-xl p-4">
+                    <span class="font-bold text-[--accent-blue] block mb-2">策略 ① 视频分段切割</span>
+                    <p class="text-[--text-muted] leading-relaxed mb-2">使用 FFmpeg 的 <code class="text-black bg-black/5 px-1 rounded">-ss</code> 和 <code class="text-black bg-black/5 px-1 rounded">-to</code> 参数，将 1 小时视频按关键帧精确切割为 3 段（各约 20 分钟），分段文件尺寸控制在 2-3GB。</p>
+                    <div class="code-block text-[10px] mt-2">
+<span class="code-comment"># 按时间点切割，不重新编码（-c copy）</span>
+ffmpeg -i input.mp4 -c copy -ss 00:00:00 -to 00:20:00 part1.mp4
+ffmpeg -i input.mp4 -c copy -ss 00:20:00 -to 00:40:00 part2.mp4
+ffmpeg -i input.mp4 -c copy -ss 00:40:00 -to 01:00:00 part3.mp4
+                    </div>
+                </div>
+
+                <!-- 方案 2 -->
+                <div class="bg-white/70 rounded-xl p-4">
+                    <span class="font-bold text-[--accent-purple] block mb-2">策略 ② 分段字幕匹配 + GPU 编码</span>
+                    <p class="text-[--text-muted] leading-relaxed mb-2">将 SRT 字幕按相同时间点切割为 3 份 → 每段独立烧制。同时启用 NVIDIA NVENC 硬件编码器（<code class="text-black bg-black/5 px-1 rounded">h264_nvenc</code>），将编码压力从 CPU 转移至 GPU，大幅降低内存占用。</p>
+                    <div class="code-block text-[10px] mt-2">
+<span class="code-comment"># GPU 硬件加速烧制字幕</span>
+ffmpeg -i part1.mp4 -vf <span class="code-string">"subtitles=part1.srt"</span> \
+  -c:v h264_nvenc -preset p4 -b:v 8M \
+  -c:a copy part1_sub.mp4
+                    </div>
+                </div>
+
+                <!-- 方案 3 -->
+                <div class="bg-white/70 rounded-xl p-4">
+                    <span class="font-bold text-[--accent-green] block mb-2">策略 ③ 无损拼接 + 断点续传</span>
+                    <p class="text-[--text-muted] leading-relaxed mb-2">三段子视频完成后，使用 FFmpeg 的 concat demuxer 无损拼接为完整成品。同时编写批处理脚本，若某一段失败，仅重试该段，无需全部重来。</p>
+                    <div class="code-block text-[10px] mt-2">
+<span class="code-comment"># 创建文件列表 filelist.txt</span>
+<span class="code-comment"># file 'part1_sub.mp4'</span>
+<span class="code-comment"># file 'part2_sub.mp4'</span>
+<span class="code-comment"># file 'part3_sub.mp4'</span>
+
+<span class="code-comment"># 无损拼接</span>
+ffmpeg -f concat -safe 0 -i filelist.txt \
+  -c copy final_output.mp4
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 bg-white/70 rounded-xl p-4 text-xs leading-relaxed">
+                <span class="font-bold text-black block mb-1">🎯 这个解决方案证明的能力</span>
+                <p class="text-[--text-muted]">
+                    不是"会用 FFmpeg"，而是在工程实践中遇到<strong class="text-black">内存溢出导致的长视频处理中断</strong>时，
+                    能独立分析根因（OOM → 单次编码帧缓存过大）、设计分段策略（切割 + GPU 编码 + 断点续传）、并落地为可复用的批处理管线。
+                    这套思路适用于任何大文件的流媒体处理场景。
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 05 输出结果 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">输出结果</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Deliverables</p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 左侧：输出物列表 -->
+            <div class="space-y-4">
+                <div class="bg-white/50 rounded-xl p-5 border border-black/5 flex items-start gap-4">
+                    <span class="text-2xl flex-shrink-0">📄</span>
+                    <div>
+                        <h4 class="font-bold text-sm">双语 SRT 字幕文件</h4>
+                        <p class="text-xs text-[--text-muted] mt-1">英语原文 + 简体中文译文，逐句对齐时间轴。可直接上传至 B站 / YouTube 作为外挂字幕，或导入其他剪辑工具二次编辑。</p>
+                    </div>
+                </div>
+                <div class="bg-white/50 rounded-xl p-5 border border-black/5 flex items-start gap-4">
+                    <span class="text-2xl flex-shrink-0">🎬</span>
+                    <div>
+                        <h4 class="font-bold text-sm">内嵌双语硬字幕视频</h4>
+                        <p class="text-xs text-[--text-muted] mt-1">FFmpeg 分段烧制 + 无损拼接的完整 1 小时成品视频。字幕直接嵌入画面，无需观众手动开启，适配移动端全屏播放场景。</p>
+                    </div>
+                </div>
+                <div class="bg-white/50 rounded-xl p-5 border border-black/5 flex items-start gap-4">
+                    <span class="text-2xl flex-shrink-0">🔁</span>
+                    <div>
+                        <h4 class="font-bold text-sm">可复用的批处理管线</h4>
+                        <p class="text-xs text-[--text-muted] mt-1">分段切割脚本 + GPU 编码参数配置 + 拼接脚本均已保留。下一条视频只需替换输入文件和 SRT，即可一键跑通全流程。</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：B站视频卡片 -->
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5 flex flex-col justify-center items-center text-center">
+                <div class="text-5xl mb-4">▶️</div>
+                <h4 class="font-bold text-lg mb-2">B站成品视频</h4>
+                <p class="text-xs text-[--text-muted] mb-6 max-w-xs">
+                    1 小时英文 Z 世代艺人访谈，内嵌中英双语字幕。已在 B站账号「莫比里的房子鹅」发布。
+                </p>
+                <a href="https://www.bilibili.com/video/BV1AiJK6rELe/" target="_blank" class="inline-flex items-center gap-2 glass px-6 py-3 rounded-full font-bold text-sm hover:bg-[--accent-blue] hover:text-white transition-all shadow-md">
+                    <span>📺 在 B站观看完整视频</span>
+                </a>
+                <p class="text-[10px] text-[--text-muted] mt-4">BV1AiJK6rELe · 已发布</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 06 能力映射 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">这个项目证明了什么</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Skills Demonstrated</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5 text-center">
+                <div class="text-3xl mb-3">🖥️</div>
+                <h4 class="font-bold mb-2">AI 模型本地部署</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    不依赖云端 API，在本地 GPU 上加载并运行 1.55B 参数的 Whisper 模型。理解 CUDA 加速原理、显存管理、模型精度（FP16）与推理速度的权衡。
+                </p>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5 text-center">
+                <div class="text-3xl mb-3">🔧</div>
+                <h4 class="font-bold mb-2">多媒体工程管线</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    独立配置 FFmpeg 环境，解决长视频内存溢出问题。掌握分段切割、GPU 硬件编码（NVENC）、无损拼接等生产级 video processing 技术。
+                </p>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5 text-center">
+                <div class="text-3xl mb-3">🧠</div>
+                <h4 class="font-bold mb-2">技术选型判断力</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    不盲目接受工具默认配置或 AI 建议。根据实际业务场景（Z 世代俚语、UP 主精度要求）做独立的模型选型决策。
+                </p>
+            </div>
+            <div class="bg-white/50 rounded-2xl p-5 border border-black/5 text-center">
+                <div class="text-3xl mb-3">📦</div>
+                <h4 class="font-bold mb-2">端到端交付能力</h4>
+                <p class="text-xs text-[--text-muted] leading-relaxed">
+                    从一个翻译需求出发，串联开源工具 + 自费 API + 本地 GPU → 产出可发布的双语字幕视频 + 可复用的批处理管线。
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="py-16 px-6 border-t border-black/10 text-center gs-fade">
+    <h2 class="text-xl md:text-2xl font-bold font-serif mb-4">"将 AI 模型的推理能力，转化为可感知的内容生产力。"</h2>
+    <div class="flex flex-wrap justify-center gap-4 mt-6 mb-8">
+        <a href="https://www.bilibili.com/video/BV1AiJK6rELe/" target="_blank" class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors pb-1 border-b border-current">B站成品视频</a>
+        <a href="https://github.com/WEIFENG2333/VideoCaptioner" target="_blank" class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors pb-1 border-b border-current">VideoCaptioner 仓库</a>
+        <a href="mailto:zgtl113@outlook.com" class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors pb-1 border-b border-current">zgtl113@outlook.com</a>
+    </div>
+    <a href="index.html" class="inline-block text-[--text-muted] hover:text-black font-bold transition-colors text-sm">
+        &larr; Back to Home
+    </a>
+</footer>
+
+</div><!-- /smooth-wrapper -->
+
+<script>
+    const lenis = new Lenis({ duration: 1.2 });
+    function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+    requestAnimationFrame(raf);
+
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray('.gs-fade').forEach(elem => {
+        gsap.from(elem, {
+            scrollTrigger: { trigger: elem, start: "top 85%" },
+            y: 30, opacity: 0, duration: 1, ease: "power3.out"
+        });
+    });
+
+    document.querySelectorAll('.fold-section').forEach(section => {
+        section.addEventListener('toggle', () => {
+            if (section.open) {
+                setTimeout(() => {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            }
+        });
+    });
+</script>
+
+<!-- Dock导航 -->
+<nav class="dock-nav">
+<a href="index.html" class="dock-item">Home</a>
+<a href="subpage_betube.html" class="dock-item">BEtube</a>
+<a href="subpage_lan.html" class="dock-item">Subtitle</a>
+<a href="subpage__sketch2face.html" class="dock-item">Sketch2Face</a>
+<a href="subpage_bili.html" class="dock-item">B站</a>
+<a href="subpage_douyin.html" class="dock-item">抖音</a>
+<a href="subpage_liter.html" class="dock-item">Liter</a>
+</nav>
+</body>
+</html>

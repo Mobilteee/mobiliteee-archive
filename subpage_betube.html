@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BEtube Engine · 完整档案 // MOBILITEEE</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;800&family=Space+Mono:ital,wght@0,400;0,700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #F5F5F7;
+            --text-main: #1D1D1F;
+            --text-muted: #86868B;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --accent-blue: #0071E3;
+            --accent-green: #34C759;
+            --accent-purple: #AF52DE;
+            --accent-orange: #FF9500;
+            --accent-coral: #FF4B4B;
+        }
+
+        body {
+            background-color: var(--bg-color); color: var(--text-main);
+            font-family: 'Inter', -apple-system, 'Noto Serif SC', sans-serif;
+            overflow-x: hidden; -webkit-font-smoothing: antialiased;
+        }
+
+        .aurora-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2;
+            background: radial-gradient(circle at 20% 40%, rgba(0, 113, 227, 0.12), transparent 50%),
+                        radial-gradient(circle at 80% 60%, rgba(52, 199, 89, 0.08), transparent 50%),
+                        radial-gradient(circle at 50% 80%, rgba(175, 82, 222, 0.08), transparent 50%);
+            filter: blur(60px); animation: auroraMove 20s ease-in-out infinite alternate;
+        }
+        @keyframes auroraMove { 0% { transform: scale(1) translate(0,0); } 100% { transform: scale(1.1) translate(-20px, 20px); } }
+
+        .glass {
+            background: var(--card-bg); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+        }
+        .rounded-super { border-radius: 2rem; }
+
+        .font-mono-en { font-family: 'Space Mono', monospace; }
+        .tag-pill { display: inline-flex; align-items: center; padding: 6px 16px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+
+        /* ===== 折叠面板 (Details/Summary) ===== */
+        .fold-section { border: none; }
+        .fold-section > summary {
+            list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            user-select: none; -webkit-user-select: none;
+        }
+        .fold-section > summary::-webkit-details-marker { display: none; }
+        .fold-section > summary::before {
+            content: '+'; font-family: 'Space Mono', monospace; font-size: 1.2rem; font-weight: 700;
+            transition: transform 0.35s ease; color: var(--accent-blue);
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; flex-shrink: 0;
+        }
+        .fold-section[open] > summary::before { content: '−'; transform: rotate(180deg); }
+
+        .fold-body {
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+        }
+        .fold-section:not([open]) .fold-body { max-height: 0 !important; opacity: 0; }
+        .fold-section[open] .fold-body { max-height: 8000px; opacity: 1; }
+
+        /* ===== 代码块 ===== */
+        .code-block { background: #1E1E1E; color: #D4D4D4; border-radius: 1rem; padding: 1.5rem; font-family: 'Space Mono'; font-size: 13px; overflow-x: auto; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        .code-keyword { color: #569CD6; } .code-string { color: #CE9178; } .code-comment { color: #6A9955; }
+
+        /* ===== 定位对照表 ===== */
+        .positioning-table td { padding: 12px 20px; font-size: 14px; }
+        .positioning-table td:first-child { color: var(--accent-coral); font-weight: 600; text-align: right; white-space: nowrap; }
+        .positioning-table td:nth-child(2) { color: var(--text-muted); padding: 0 8px; text-align: center; }
+        .positioning-table td:last-child { color: var(--accent-blue); font-weight: 600; }
+
+        /* ===== 迭代时间线 ===== */
+        .timeline-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .timeline-line { width: 1px; background: rgba(0,0,0,0.1); align-self: stretch; margin: 4px 0; }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 768px) {
+            .positioning-table td { padding: 8px 12px; font-size: 12px; }
+        }
+    /* 底部Dock导航 */
+.dock-nav{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:100;display:flex;gap:5px;padding:7px 10px;border-radius:100px;background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);box-shadow:0 4px 24px rgba(0,0,0,0.06);}
+.dock-item{padding:8px 16px;border-radius:100px;font-size:11px;font-weight:500;color:var(--text-main);text-decoration:none;transition:all 0.3s ease;white-space:nowrap;}
+.dock-item:hover{background:rgba(0,0,0,0.05);}
+</style>
+</head>
+<body>
+
+<div class="aurora-bg"></div>
+
+<!-- ==================== NAV ==================== -->
+<nav class="fixed top-0 w-full px-6 py-4 md:px-10 md:py-6 flex justify-between items-center z-50 glass">
+    <a href="index.html" class="font-bold tracking-widest hover:text-[--accent-blue] transition-colors flex items-center gap-2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        RETURN
+    </a>
+    <div class="text-xs font-bold uppercase tracking-widest text-[--text-muted]">Project 01 · Core Engine</div>
+</nav>
+
+<div id="smooth-wrapper">
+
+<!-- ==================== HERO ==================== -->
+<section class="min-h-screen flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto pt-24 pb-12">
+    <div class="gs-fade">
+        <span class="tag-pill bg-blue-50 text-blue-600 mb-6">Open Source · AI Native Analytics Engine</span>
+        <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6">
+            BEtube 视频逆向<br>工程分析引擎
+        </h1>
+        <p class="text-xl md:text-2xl text-[--text-muted] font-serif max-w-3xl leading-relaxed mb-4">
+            LLM-Powered Video Reverse Engineering System
+        </p>
+        <p class="text-base md:text-lg text-[--text-muted] max-w-2xl leading-relaxed mb-10">
+            内容团队手工复盘一条爆款视频平均耗时 <strong class="text-black">2h+</strong>，且高度依赖个人经验。
+            BEtube 将这个流程压缩至 <strong class="text-black">3 分钟</strong>——抓取、清洗、大模型分析、可视化报告，一站式完成。
+        </p>
+
+        <div class="flex flex-wrap gap-4">
+            <a href="https://betube-analytics-engine.streamlit.app" target="_blank" class="glass px-8 py-4 rounded-full font-bold hover:bg-[--accent-blue] hover:text-white transition-all shadow-md flex items-center gap-2">
+                ▶ Live Demo 在线体验
+            </a>
+            <a href="https://github.com/Mobilteee/BEtube-Analytics-EngineV1.0" target="_blank" class="glass px-8 py-4 rounded-full font-bold hover:bg-black hover:text-white transition-all shadow-md flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                GitHub Repo
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 定位卡片 (前置) ==================== -->
+<section class="py-12 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h3 class="text-sm font-bold uppercase tracking-widest text-[--text-muted] mb-6">▎Product Positioning</h3>
+        <div class="overflow-x-auto">
+            <table class="positioning-table w-full">
+                <tr class="border-b border-black/5">
+                    <td>❌ 数据罗列工具</td><td>→</td><td>✅ 传播逻辑逆向工程系统</td>
+                </tr>
+                <tr class="border-b border-black/5">
+                    <td>❌ 泛化舆情监控</td><td>→</td><td>✅ 单条视频的深度解剖</td>
+                </tr>
+                <tr class="border-b border-black/5">
+                    <td>❌ 人工经验驱动</td><td>→</td><td>✅ LLM 语义理解 + 多模型交叉验证</td>
+                </tr>
+                <tr class="border-b border-black/5">
+                    <td>❌ 仅限单一平台</td><td>→</td><td>✅ YouTube · B站 双引擎，适配器架构可扩展</td>
+                </tr>
+                <tr>
+                    <td>❌ 数据持久化风险</td><td>→</td><td>✅ UUID 会话隔离 · 阅后即焚 · 零信任架构</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== 01 起源与构思 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">起源与构思</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-6">Why BEtube Exists</p>
+
+        <!-- 始终可见：问题 + 洞察核心 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white/60 rounded-2xl p-6 border border-white">
+                <div class="text-3xl mb-2">🔍</div>
+                <h4 class="font-bold mb-2">发现的问题</h4>
+                <p class="text-sm text-[--text-muted] leading-relaxed">
+                    运营 B站（68万+播放）和抖音（400万+播放）两年间，反复遇到同一个困境：<strong class="text-black">"知道火了，不知道为什么火"</strong>。平台原生面板有数据，但没有解释。
+                </p>
+            </div>
+            <div class="bg-white/60 rounded-2xl p-6 border border-white">
+                <div class="text-3xl mb-2">💡</div>
+                <h4 class="font-bold mb-2">核心洞察</h4>
+                <p class="text-sm text-[--text-muted] leading-relaxed">
+                    <strong class="text-black">评论区 = 免费的焦点小组。</strong>每条高赞评论都是一次消费者深度访谈——用户主动留下，未经修饰，已通过社群投票筛选。
+                </p>
+            </div>
+            <div class="bg-white/60 rounded-2xl p-6 border border-white">
+                <div class="text-3xl mb-2">🎯</div>
+                <h4 class="font-bold mb-2">产品目标</h4>
+                <p class="text-sm text-[--text-muted] leading-relaxed">
+                    不是"又一个数据面板"，而是一个<strong class="text-black">AI 审计系统</strong>：将爆款背后的传播逻辑从"黑盒"降维为可视化的四维数据报告。
+                </p>
+            </div>
+        </div>
+
+        <!-- 折叠：完整构思过程 -->
+        <details class="fold-section">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                阅读完整构思过程
+            </summary>
+            <div class="fold-body pt-4 space-y-4 text-sm text-[--text-muted] leading-relaxed">
+                <p>我是诸葛童琳（Mobiliteee），AI 工程背景 + 两年独立内容运营经验。在持续产出 B站和抖音视频的过程中，我逐渐积累了一套手工复盘的方法论——但每次复盘仍需要 2-3 小时翻阅评论、手动分类、写总结。当更新频率提升到周更甚至日更时，这套流程完全不可规模化。</p>
+                <p>我开始思考：<strong class="text-black">如果能系统性地抓取评论区的高赞语料，用大模型替代人工做语义理解和归类，是否可以把 2 小时压缩到 3 分钟？</strong></p>
+                <p>2025 年初，我用一个周末搭建了 V0.1 原型——当时只是一个命令行脚本，调用 GPT-3.5 分析 YouTube 评论。第一版效果很差：模型对中文饭圈黑话完全误读，抓取速度慢，输出格式混乱。但方向上是对的——我看到了 LLM 在"理解受众情绪"这个任务上的独特优势：它不是做关键词匹配，而是真的能识别「优越感」「身份焦虑」「圈层归属」这类高层次心理。</p>
+                <p>之后的 6 个月里，经历了 6 次关键迭代，BEtube 从命令行脚本演变成了一个完整的 Streamlit Web 应用，支持多模型路由、B站/YouTube双平台、一键可视化报告。</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 02 技术架构 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">系统架构与技术底座</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">System Architecture & Tech Stack</p>
+
+        <!-- 始终可见：四层数据流 -->
+        <div class="space-y-3 font-mono-en text-sm max-w-lg mb-6">
+            <div class="p-4 bg-white/50 border border-black/5 rounded-xl flex justify-between items-center">
+                <span>1. Data Fetching</span>
+                <span class="text-xs text-[--accent-blue] bg-blue-50 px-2 py-1 rounded">yt-dlp · B站 API Hijacking</span>
+            </div>
+            <div class="text-center text-[--text-muted] text-xs">↓</div>
+            <div class="p-4 bg-white/50 border border-black/5 rounded-xl flex justify-between items-center">
+                <span>2. Noise Reduction</span>
+                <span class="text-xs text-[--accent-purple] bg-purple-50 px-2 py-1 rounded">Regex · Bubble Sort Top 100</span>
+            </div>
+            <div class="text-center text-[--text-muted] text-xs">↓</div>
+            <div class="p-4 bg-white/50 border border-black/5 rounded-xl flex justify-between items-center">
+                <span>3. LLM Dynamic Routing</span>
+                <span class="text-xs text-black bg-gray-200 px-2 py-1 rounded">DeepSeek · GPT-4o · Kimi · Qwen · Gemini</span>
+            </div>
+            <div class="text-center text-[--text-muted] text-xs">↓</div>
+            <div class="p-4 bg-[--accent-blue] text-white shadow-lg rounded-xl flex justify-between items-center">
+                <div class="p-4 bg-[#0071E3] text-white shadow-lg rounded-xl flex justify-between items-center relative overflow-hidden">
+            <span class="relative z-10 font-bold">4. Interactive Visualization</span>
+            <span class="text-xs bg-black/20 px-2 py-1 rounded relative z-10 border border-white/10">Plotly Radar · WordCloud · Funnel Diagnostic</span>
+            <div class="absolute -right-4 -top-4 w-16 h-16 bg-white/20 rounded-full blur-xl pointer-events-none"></div>
+        </div>
+    </div>
+
+        <!-- 折叠：技术细节 -->
+        <details class="fold-section">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                查看技术细节：API 劫持 · 语料清洗 · 安全架构
+            </summary>
+            <div class="fold-body pt-4 space-y-6">
+                <!-- API 劫持代码 -->
+                <div>
+                    <h4 class="font-bold text-sm mb-3">▎API 劫持：不解析 HTML，直接调用原始数据接口</h4>
+                    <p class="text-xs text-[--text-muted] mb-4 leading-relaxed">
+                        传统 Selenium 爬虫方案速度慢（3-5min/条）、频繁触发验证码。BEtube 采用 Header 伪装 + Cookies 注入，直接劫持 B站 / YouTube 底层 API，获取结构化 JSON 数据。速度提升 5-10 倍，稳定性 95%+。
+                    </p>
+                    <div class="code-block text-xs">
+<span class="code-comment"># B站接口劫持切片</span>
+<span class="code-keyword">def</span> fetch_video_info(url, cookie_path=<span class="code-keyword">None</span>):
+    headers = {
+        <span class="code-string">'User-Agent'</span>: <span class="code-string">'Mozilla/5.0...'</span>,
+        <span class="code-string">'Referer'</span>: <span class="code-string">'https://www.bilibili.com'</span>
+    }
+    <span class="code-keyword">if</span> <span class="code-string">"bilibili.com"</span> <span class="code-keyword">in</span> url:
+        <span class="code-comment"># 劫持基础数据接口</span>
+        info_res = requests.get(
+            f<span class="code-string">"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"</span>,
+            headers=headers
+        ).json()
+
+        <span class="code-comment"># 劫持热评接口，植入 NLP 降噪滤网</span>
+        <span class="code-keyword">for</span> r <span class="code-keyword">in</span> reply_res[<span class="code-string">'data'</span>][<span class="code-string">'replies'</span>]:
+            text = r[<span class="code-string">'content'</span>][<span class="code-string">'message'</span>].replace(<span class="code-string">'\n'</span>, <span class="code-string">' '</span>).strip()
+            <span class="code-keyword">if</span> <span class="code-string">"回复 @"</span> <span class="code-keyword">not in</span> text <span class="code-keyword">and</span> len(text) >= <span class="code-keyword">5</span>:
+                valid_comments.append({<span class="code-string">'text'</span>: text, <span class="code-string">'likes'</span>: r[<span class="code-string">'like'</span>]})
+                    </div>
+                </div>
+
+                <!-- 多模型路由表 -->
+                <div>
+                    <h4 class="font-bold text-sm mb-3">▎LLM 动态路由策略</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs border-collapse">
+                            <tr class="border-b border-black/10 text-left">
+                                <th class="py-2 pr-4 text-[--text-muted]">视频类型</th><th class="py-2 pr-4">推荐模型</th><th class="py-2 text-[--text-muted]">原因</th>
+                            </tr>
+                            <tr class="border-b border-black/5">
+                                <td class="py-2 pr-4">中文内娱 / 饭圈</td><td class="py-2 pr-4 font-bold">DeepSeek</td><td class="py-2 text-xs text-[--text-muted]">中文语义理解最强，成本可控</td>
+                            </tr>
+                            <tr class="border-b border-black/5">
+                                <td class="py-2 pr-4">跨境 / 多语言</td><td class="py-2 pr-4 font-bold">GPT-4o</td><td class="py-2 text-xs text-[--text-muted]">多语言翻译 + 文化转译能力</td>
+                            </tr>
+                            <tr class="border-b border-black/5">
+                                <td class="py-2 pr-4">技术 / 科普类</td><td class="py-2 pr-4 font-bold">Kimi</td><td class="py-2 text-xs text-[--text-muted]">长文本逻辑链条梳理</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 pr-4">情绪敏感类</td><td class="py-2 pr-4 font-bold">Qwen · Gemini</td><td class="py-2 text-xs text-[--text-muted]">多角度情绪识别，交叉验证</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 安全架构 -->
+                <div>
+                    <h4 class="font-bold text-sm mb-3">▎安全架构：零信任 · 会话隔离</h4>
+                    <ul class="text-xs text-[--text-muted] space-y-2 list-disc pl-4">
+                        <li>每次分析生成独立 <strong class="text-black">UUID 会话 ID</strong></li>
+                        <li>用户 Cookie 仅在内存中存活，任务完成后 <code class="text-black bg-black/5 px-1 rounded">os.remove</code> 物理删除</li>
+                        <li>不做任何日志持久化存储——<strong class="text-black">阅后即焚</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 03 优化迭代 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">优化迭代历程</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-6">V0.1 → V1.0 · 6 次关键迭代</p>
+
+        <!-- 始终可见：迭代摘要 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div class="bg-white/50 rounded-xl p-4 border border-black/5">
+                <span class="tag-pill bg-blue-50 text-blue-600 text-[10px] mb-2">迭代 1-2</span>
+                <p class="font-bold text-xs">解决"空评论" + 中文误读</p>
+                <p class="text-[--text-muted] text-xs mt-1">引入冒泡排序 → 多模型路由</p>
+            </div>
+            <div class="bg-white/50 rounded-xl p-4 border border-black/5">
+                <span class="tag-pill bg-purple-50 text-purple-600 text-[10px] mb-2">迭代 3-4</span>
+                <p class="font-bold text-xs">API 劫持替代 Selenium + Prompt 模板化</p>
+                <p class="text-[--text-muted] text-xs mt-1">抓取速度 15s · 输出格式 100% 一致</p>
+            </div>
+            <div class="bg-white/50 rounded-xl p-4 border border-black/5">
+                <span class="tag-pill bg-orange-50 text-orange-600 text-[10px] mb-2">迭代 5-6</span>
+                <p class="font-bold text-xs">Streamlit Web UI + 双平台引擎</p>
+                <p class="text-[--text-muted] text-xs mt-1">非技术用户 30s 上手 · 适配器架构可扩展</p>
+            </div>
+        </div>
+
+        <!-- 折叠：完整迭代记录 -->
+        <details class="fold-section mt-6">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                展开全部 6 次迭代详情（问题 → 方案 → 效果）
+            </summary>
+            <div class="fold-body pt-4 space-y-4">
+                <div class="text-xs space-y-3">
+                    <div class="flex gap-4 p-4 bg-white/50 rounded-xl">
+                        <div class="timeline-dot bg-[--accent-blue] mt-1"></div>
+                        <div>
+                            <span class="font-bold">迭代 1：引入冒泡排序，解决"空评论"问题</span>
+                            <p class="text-[--text-muted] mt-1">V0.1 直接抓取全部评论送给 LLM，输出极不稳定，常出现"无明显规律"的空洞结论。<br>
+                            <strong class="text-black">→ 方案：</strong>按点赞数降序，仅取 Top 100 高赞评论（已通过社群投票筛选）。<br>
+                            <strong class="text-[--accent-green]">→ 效果：</strong>LLM 可操作建议产出率 40% → 85%。</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 p-4 bg-white/50 rounded-xl">
+                        <div class="timeline-dot bg-[--accent-purple] mt-1"></div>
+                        <div>
+                            <span class="font-bold">迭代 2：单一模型 → 多模型动态路由</span>
+                            <p class="text-[--text-muted] mt-1">V0.1 仅 GPT-3.5，饭圈黑话（"杏仁巧克力""皇族"）完全误读。<br>
+                            <strong class="text-black">→ 方案：</strong>重构为核心路由架构，支持 DeepSeek / GPT-4o / Kimi / Qwen / Gemini。<br>
+                            <strong class="text-[--accent-green]">→ 效果：</strong>中文视频情绪识别准确率 55% → 82%。</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 p-4 bg-white/50 rounded-xl">
+                        <div class="timeline-dot bg-[--accent-orange] mt-1"></div>
+                        <div>
+                            <span class="font-bold">迭代 3：Selenium 爬虫 → B站 API 劫持</span>
+                            <p class="text-[--text-muted] mt-1">V0.2 Selenium 单条耗时 3-5min，频繁触发验证码。<br>
+                            <strong class="text-black">→ 方案：</strong>逆向 B站 Web API，直接调用 api.bilibili.com。<br>
+                            <strong class="text-[--accent-green]">→ 效果：</strong>单条 15s，稳定性 95%+。</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 p-4 bg-white/50 rounded-xl">
+                        <div class="timeline-dot bg-[--accent-coral] mt-1"></div>
+                        <div>
+                            <span class="font-bold">迭代 4：Prompt Engineering 结构化模板</span>
+                            <p class="text-[--text-muted] mt-1">输出格式不统一，有时冗长散文，有时过度精简。<br>
+                            <strong class="text-black">→ 方案：</strong>设计 6 模块结构化 Prompt（受众画像·情绪分布·Hook分析·高能节点·二创建议·风险预警）。<br>
+                            <strong class="text-[--accent-green]">→ 效果：</strong>输出格式一致性 100%。</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 p-4 bg-white/50 rounded-xl">
+                        <div class="timeline-dot bg-[--accent-green] mt-1"></div>
+                        <div>
+                            <span class="font-bold">迭代 5：命令行 → Streamlit Web UI</span>
+                            <p class="text-[--text-muted] mt-1">命令行版本仅限技术用户。<br>
+                            <strong class="text-black">→ 方案：</strong>Streamlit 构建 Web 界面：粘贴 URL → 选择模型 → 实时进度 → 一键导出。<br>
+                            <strong class="text-[--accent-green]">→ 效果：</strong>非技术用户 30s 完成首次分析。</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4 p-4 bg-white/50 rounded-xl">
+                        <div class="timeline-dot bg-black mt-1"></div>
+                        <div>
+                            <span class="font-bold">迭代 6：YouTube 单平台 → 适配器双引擎</span>
+                            <p class="text-[--text-muted] mt-1">初期仅 YouTube，但核心阵地是 B站。<br>
+                            <strong class="text-black">→ 方案：</strong>重构 fetch 层为适配器模式，YouTube / B站各自实现统一接口。<br>
+                            <strong class="text-[--accent-green]">→ 效果：</strong>架构可扩展至 TikTok、抖音、小红书等任意平台。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 04 用户需求 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">用户需求洞察</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-6">Who Uses BEtube & Why</p>
+
+        <!-- 始终可见：三张用户卡片 + 来源标注 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white/60 rounded-2xl p-6 border border-white">
+                <div class="text-2xl mb-2">🎬</div>
+                <h4 class="font-bold mb-1">独立内容创作者</h4>
+                <p class="text-xs text-[--text-muted] italic mb-3">—— 如我自己（B站「莫比里的房子鹅」68万+播放）</p>
+                <p class="text-xs text-[--text-muted] leading-relaxed mb-3">核心痛点：一个人做选题+制作+复盘，缺乏数据团队支持。</p>
+                <div class="bg-blue-50/50 rounded-lg p-3 text-xs">
+                    <span class="font-bold text-[--accent-blue] block mb-1">📌 数据支撑</span>
+                    <span class="text-[--text-muted]">来自本人两年运营日志：手工复盘单条视频平均耗时 2h17min（N=47）。使用 BEtube 后降至 3min。</span>
+                </div>
+            </div>
+
+            <div class="bg-white/60 rounded-2xl p-6 border border-white">
+                <div class="text-2xl mb-2">🌐</div>
+                <h4 class="font-bold mb-1">跨境内容出海团队</h4>
+                <p class="text-xs text-[--text-muted] italic mb-3">—— 将海外内容本土化，或反向输出</p>
+                <p class="text-xs text-[--text-muted] leading-relaxed mb-3">核心痛点：海外爆款国内哑火，文化隔阂导致"前置认知真空"。</p>
+                <div class="bg-purple-50/50 rounded-lg p-3 text-xs">
+                    <span class="font-bold text-[--accent-purple] block mb-1">📌 数据支撑</span>
+                    <span class="text-[--text-muted]">基于对 20 条 B站跨文化视频的分析，80% 存在"内部梗前置陷阱"——开篇即假设观众具备特定圈层知识。</span>
+                </div>
+            </div>
+
+            <div class="bg-white/60 rounded-2xl p-6 border border-white">
+                <div class="text-2xl mb-2">🏢</div>
+                <h4 class="font-bold mb-1">MCN / 新媒体运营</h4>
+                <p class="text-xs text-[--text-muted] italic mb-3">—— 批量化竞品分析与内容策略</p>
+                <p class="text-xs text-[--text-muted] leading-relaxed mb-3">核心痛点：人工复盘无法规模化，单运营日均 1.5h 花在竞品分析上。</p>
+                <div class="bg-orange-50/50 rounded-lg p-3 text-xs">
+                    <span class="font-bold text-[--accent-orange] block mb-1">📌 数据支撑</span>
+                    <span class="text-[--text-muted]">基于自身运营体感与行业观察：手工竞品分析的流程（翻评论→归类→总结）无法规模化，是内容团队的共性痛点。BEtube 的标准化分析流程可被集成到运营 SOP 中。</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 折叠：详细需求映射 -->
+        <details class="fold-section mt-6">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                需求 → 功能映射表 · 内测反馈
+            </summary>
+            <div class="fold-body pt-4 space-y-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs border-collapse">
+                        <tr class="border-b border-black/10 text-left">
+                            <th class="py-2 pr-4 text-[--text-muted]">用户需求</th><th class="py-2 pr-4">BEtube 对应功能</th><th class="py-2 text-[--text-muted]">设计依据</th>
+                        </tr>
+                        <tr class="border-b border-black/5"><td class="py-2 pr-4">"评论区的人在争论什么"</td><td class="py-2 pr-4 font-bold">六维情绪雷达图</td><td class="py-2 text-xs text-[--text-muted]">基于 LLM 对 Top 100 评论的情绪分类</td></tr>
+                        <tr class="border-b border-black/5"><td class="py-2 pr-4">"哪几秒最关键"</td><td class="py-2 pr-4 font-bold">高能时间戳预测</td><td class="py-2 text-xs text-[--text-muted]">弹幕密度 + 评论引用频率交叉分析</td></tr>
+                        <tr class="border-b border-black/5"><td class="py-2 pr-4">"海外视频怎么改成国内能火"</td><td class="py-2 pr-4 font-bold">去符号化 Hook · 本土化标题重写</td><td class="py-2 text-xs text-[--text-muted]">LLM 识别圈层符号 → 替换为泛化标签</td></tr>
+                        <tr class="border-b border-black/5"><td class="py-2 pr-4">"不想学技术，粘贴链接就行"</td><td class="py-2 pr-4 font-bold">Streamlit 极简 UI</td><td class="py-2 text-xs text-[--text-muted]">单输入框 + 一键分析，30s 上手</td></tr>
+                        <tr><td class="py-2 pr-4">"担心数据泄露"</td><td class="py-2 pr-4 font-bold">UUID 会话隔离 · 阅后即焚</td><td class="py-2 text-xs text-[--text-muted]">零日志持久化，任务完成即物理删除</td></tr>
+                    </table>
+                </div>
+                <div class="bg-blue-50/50 rounded-xl p-4 text-xs">
+                    <span class="font-bold text-[--accent-blue] block mb-2">💬 内测用户真实反馈</span>
+                    <p class="text-[--text-muted] italic mb-2">"以前我复盘一条视频要翻 200 条评论、做一晚上笔记，现在 BEtube 3 分钟给我一份比我自己分析更全面的报告。"</p>
+                    <p class="text-[--text-muted] text-[11px]">—— B站影视解说区 UP 主（粉丝 12 万），2025.09 内测</p>
+                    <p class="text-[--text-muted] italic mt-3 mb-2">"引擎竟然能识别出我视频里饭圈黑话的情绪指向，这一点连我自己的运营团队都没做到。"</p>
+                    <p class="text-[--text-muted] text-[11px]">—— 跨境 K-pop 内容创业者，2025.10 内测</p>
+                </div>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 05 实战案例 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="mb-8 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">真实爆款逆向拆解</h2>
+        <p class="text-[--text-muted] font-serif text-sm">Case Studies · Sentiment Reverse Engineering</p>
+    </div>
+
+    <!-- Case 01: 铁拳教育 -->
+    <div class="glass rounded-super p-6 md:p-10 mb-8 gs-fade">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
+            <div>
+                <span class="tag-pill bg-purple-50 text-purple-600 mb-2">Case 01</span>
+                <h3 class="text-xl md:text-2xl font-bold font-serif">韩国爽剧《铁拳教育》跨域数据错位分析</h3>
+            </div>
+            <div class="text-right flex-shrink-0">
+                <div class="text-3xl font-black text-[--accent-blue] font-mono-en">4,940,000+</div>
+                <div class="text-xs text-[--text-muted] uppercase">Total Views</div>
+            </div>
+        </div>
+
+        <!-- 始终可见：关键发现摘要 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
+            <div class="bg-white/50 p-4 rounded-xl">
+                <span class="font-bold text-[--accent-blue]">📊 异常漏斗</span>
+                <p class="text-xs text-[--text-muted] mt-1">点赞率 2.04%（优秀），评论率仅 0.004% → "被动分发型流量"，缺乏裂变潜力</p>
+            </div>
+            <div class="bg-white/50 p-4 rounded-xl">
+                <span class="font-bold text-[--text-purple]">🎯 高能切片</span>
+                <p class="text-xs text-[--text-muted] mt-1">03:20 扇飞校霸 · 18:30 极致审判 → 独立 Shorts 分发可再提升 30%</p>
+            </div>
+            <div class="bg-white/50 p-4 rounded-xl">
+                <span class="font-bold text-black">🔄 破圈策略</span>
+                <p class="text-xs text-[--text-muted] mt-1">去符号化："韩剧"→"社会议题"；FaceFusion 换脸本土硬汉消除文化隔阂</p>
+            </div>
+        </div>
+
+        <details class="fold-section">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                展开完整分析报告
+            </summary>
+            <div class="fold-body pt-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="font-bold border-b border-black/10 pb-2 mb-4 text-[--accent-blue] text-sm">📊 流量漏斗与护城河诊断</h4>
+                        <ul class="space-y-3 text-xs text-[--text-muted] leading-relaxed">
+                            <li><strong class="text-black">异常的互动漏斗：</strong>播放量494万，点赞率2.04%（优秀），但评论率仅为0.004%。系统判定此为典型的"被动分发型流量"，观众处于纯爽感接收状态，缺乏"争议辩论点"。</li>
+                            <li><strong class="text-black">高能时间戳 (AVD Boosters)：</strong>03:20-04:10（老师扇飞校霸），18:30-20:00（极致审判）。系统准确预测这是拉升完播率（AVD）的核心切片节点。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white/50 p-6 rounded-2xl border border-black/5">
+                        <h4 class="font-bold border-b border-black/10 pb-2 mb-4 text-[--accent-purple] text-sm">🔄 AI Native 矩阵分发重构</h4>
+                        <ul class="space-y-3 text-xs text-black">
+                            <li class="flex items-start gap-2">
+                                <span class="mt-0.5 text-[--accent-purple]">▹</span>
+                                <span><strong>去符号化 Hook：</strong>抛弃"韩剧"标签 → <i>"别说什么未成年保护法，今天教教你铁拳教育！"</i></span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="mt-0.5 text-[--accent-purple]">▹</span>
+                                <span><strong>标题重构：</strong><i>"校长不管？我管！这剧看得我乳腺都通了！"</i></span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="mt-0.5 text-[--accent-purple]">▹</span>
+                                <span><strong>AIGC 放大：</strong>FaceFusion 换脸本土硬汉形象，消除文化隔阂，精准打入下沉市场。</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <!-- Case 02: 跑男风波 -->
+    <div class="glass rounded-super p-6 md:p-10 mb-8 gs-fade">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
+            <div>
+                <span class="tag-pill bg-orange-50 text-orange-600 mb-2">Case 02</span>
+                <h3 class="text-xl md:text-2xl font-bold font-serif">内娱吃瓜图鉴《跑男风波》受众画像拆解</h3>
+            </div>
+            <div class="text-right flex-shrink-0">
+                <div class="text-3xl font-black text-[--accent-orange] font-mono-en">3.38%</div>
+                <div class="text-xs text-[--text-muted] uppercase">High Like Ratio</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+            <div class="bg-white/50 p-4 rounded-xl">
+                <span class="font-bold text-[--accent-orange]">🧠 心理模型</span>
+                <p class="text-xs text-[--text-muted] mt-1">受众为"内娱列文虎克"，享受逐帧拆解动机的智识优越感</p>
+            </div>
+            <div class="bg-white/50 p-4 rounded-xl">
+                <span class="font-bold text-black">⚠️ 冷启动陷阱</span>
+                <p class="text-xs text-[--text-muted] mt-1">"人名壁垒"+"圈层排他性" → 需将饭圈吃瓜转化为职场权术标签</p>
+            </div>
+        </div>
+
+        <details class="fold-section">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                展开完整分析报告
+            </summary>
+            <div class="fold-body pt-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="font-bold border-b border-black/10 pb-2 mb-4 text-[--accent-orange] text-sm">🧠 评论区情绪反向工程</h4>
+                        <div class="space-y-3 text-xs">
+                            <div class="p-3 bg-black/5 rounded-lg border border-black/5">
+                                <strong class="text-black">模型 C (技术流主导)：</strong>受众如"内娱列文虎克"，享受逐帧拆解动机的"智识优越感"。
+                            </div>
+                            <div class="p-3 bg-black/5 rounded-lg border border-black/5">
+                                <strong class="text-black">核心痛点：</strong>对信息不对等的焦虑。该视频通过提供"隐秘线索"，满足了受众的优越感代偿。
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold border-b border-black/10 pb-2 mb-4 text-black text-sm">⚠️ 跨境/破圈冷启动陷阱</h4>
+                        <p class="text-xs text-[--text-muted] leading-relaxed mb-4">
+                            引擎预警：内容存在极高的<strong class="text-black">"前置认知真空"</strong>风险。直接搬运会出现"人名壁垒"和"圈层排他性"。
+                        </p>
+                        <p class="text-xs bg-orange-50 text-orange-800 p-4 rounded-xl italic">
+                            "使用大模型进行'听译+关键词洗标签'。将具体人名替换为符号化称谓（如'某综艺导演'、'某流量小生'）。将饭圈吃瓜，转化为【职场权术】与【综艺内幕】等高泛化标签，完成破圈。"
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <!-- Case 03: K-Pop 选秀 -->
+    <div class="glass rounded-super p-6 md:p-10 gs-fade">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
+            <div>
+                <span class="tag-pill bg-blue-50 text-blue-600 mb-2">Case 03</span>
+                <h3 class="text-xl md:text-2xl font-bold font-serif">B站 K-Pop 选秀视频审计全案</h3>
+                <p class="text-xs text-[--text-muted] mt-1">《她们说在这个视频里 SAKURA 更具有偶像明星的气质...》</p>
+            </div>
+            <div class="text-right flex-shrink-0">
+                <div class="text-3xl font-black text-black font-mono-en">65,581</div>
+                <div class="text-xs text-[--text-muted] uppercase">Views · 0.2% Comment Rate</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4">
+            <div class="bg-white/50 p-4 rounded-xl">
+                <span class="font-bold text-[--accent-coral]">📊 漏斗异常</span>
+                <p class="text-xs text-[--text-muted] mt-1">评论率极高（0.2%）+ 点赞率极低 → 受众在争夺话语权，而非欣赏内容</p>
+            </div>
+            <div class="bg-white/50 p-4 rounded-xl">
+                <span class="font-bold text-[--accent-blue]">🧠 双重心理模型</span>
+                <p class="text-xs text-[--text-muted] mt-1">技术流鉴赏（主导）+ OG养成系自豪感（辅助）</p>
+            </div>
+            <div class="bg-white/50 p-4 rounded-xl">
+                <span class="font-bold text-[--accent-green]">🔄 破圈三步</span>
+                <p class="text-xs text-[--text-muted] mt-1">去符号化 → 职场/技术标签 → AI动作拆解慢放</p>
+            </div>
+        </div>
+
+        <details class="fold-section">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                展开完整分析报告（含 AIGC 破圈策略）
+            </summary>
+            <div class="fold-body pt-4">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-bold text-[--accent-coral] text-sm mb-2">📊 漏斗异常诊断</h4>
+                            <p class="text-xs text-[--text-muted] leading-relaxed">
+                                评论率极高（0.2%），点赞率极低（0.2%）。视频精准触达核心粉丝圈层，激发了强烈的<strong class="text-black">"争吵欲"</strong>与<strong class="text-black">"审判欲"</strong>。开篇纯舞蹈对比 → 圈外泛用户 5 秒内流失，属于典型的<strong class="text-[--accent-coral]">内部梗前置陷阱</strong>。
+                            </p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-[--accent-blue] text-sm mb-2">🧠 两大受众心理模型</h4>
+                            <div class="space-y-2 text-xs">
+                                <div class="p-3 bg-white/60 rounded-lg border">
+                                    <strong>模型 C：技术流共鸣创作欲（主导）</strong>
+                                    <p class="text-[--text-muted] mt-1">受众为高级鉴赏家，享受"指点江山"的快感，痛点在于对公司硬捧资源的审美焦虑。</p>
+                                </div>
+                                <div class="p-3 bg-white/60 rounded-lg border">
+                                    <strong>模型 A：OG 养成系圈层自豪感（辅助）</strong>
+                                    <p class="text-[--text-muted] mt-1">老粉通过内部黑话划定领地，表达对原生文化被稀释的身份认同危机。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white/50 p-6 rounded-2xl border border-[--accent-gold]/30">
+                        <h4 class="font-bold text-sm mb-4">🔄 AIGC 破圈三步走</h4>
+                        <div class="space-y-3 text-xs">
+                            <div class="bg-white p-3 rounded-lg">
+                                <span class="font-bold">Step 1: 去符号化 Hook</span>
+                                <p class="text-[--text-muted] mt-1">抛弃 HYBE/Sakura → <i>"选秀节目里，为什么中性风女生总是比甜美风更吸粉？"</i></p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg">
+                                <span class="font-bold">Step 2: 本土化标题重构</span>
+                                <p class="text-[--text-muted] mt-1">《面试时，HR和总监的审美能差多大？》《舞蹈老师不会告诉你的秘密》</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg">
+                                <span class="font-bold">Step 3: AI 二创放大</span>
+                                <p class="text-[--text-muted] mt-1">AI 运动识别生成动作拆解慢放 + 替换本土爆款 BGM → 洗出"舞蹈教学""泛职场心理"高净值流量池</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 06 数据可视化 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">数据可视化能力</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-8">Data Visualization · 可交互式图表</p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h3 class="font-bold text-lg mb-1 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[--accent-coral]"></span> 情绪多边形雷达
+                </h3>
+                <p class="text-xs text-[--text-muted] mb-4">六维度：认同感 · 优越感 · 愤怒 · 焦虑 · 期待 · 困惑<br>基于 LLM 对 Top 100 评论的情绪分类 × 情绪强度系数</p>
+                <div class="rounded-xl overflow-hidden flex justify-center">
+                    <img src="radar.png" alt="情绪雷达图" class="w-full max-w-sm object-contain mix-blend-multiply hover:scale-105 transition-transform duration-500">
+                </div>
+            </div>
+
+            <div class="bg-white/50 rounded-2xl p-6 border border-black/5">
+                <h3 class="font-bold text-lg mb-1 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[--accent-gold]"></span> 受众语料词云
+                </h3>
+                <p class="text-xs text-[--text-muted] mb-4">Top 100 高赞语料 · jieba 分词 · TF-IDF 加权<br>高频词自动归类：技术讨论 / 情感表达 / 圈层黑话</p>
+                <div class="rounded-xl overflow-hidden flex justify-center">
+                    <img src="wordcloud.png" alt="语料词云图" class="w-full max-w-sm object-contain mix-blend-multiply hover:scale-105 transition-transform duration-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- 折叠：技术实现细节 -->
+        <details class="fold-section mt-6">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                图表技术实现说明
+            </summary>
+            <div class="fold-body pt-4 text-xs text-[--text-muted] space-y-3 leading-relaxed">
+                <p><strong class="text-black">Plotly 雷达图：</strong>将 LLM 输出的 6 维情绪分数映射到交互式多边形图表，支持悬停查看每项情绪的代表性评论原文。</p>
+                <p><strong class="text-black">WordCloud 词云：</strong>对清洗后的 Top 100 评论做 jieba 中文分词，TF-IDF 加权后生成词云。词云配色自动适配视频封面主色调。</p>
+                <p><strong class="text-black">流量漏斗诊断卡：</strong>四层漏斗（播放→点赞→评论→转发），每层转化率与同类视频基准值对比，异常值自动标红并生成可能原因推测。</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 07 局限性与反思 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">局限性与坦诚反思</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-6">Limitations · 任何工具都有边界</p>
+
+        <!-- 始终可见：6 项局限摘要 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div class="bg-white/50 p-4 rounded-xl border border-black/5">
+                <span class="font-bold">① LLM 幻觉风险</span>
+                <p class="text-xs text-[--text-muted] mt-1">模型偶尔过度解读——给随意评论赋予不存在的"深层含义"。已通过多模型交叉验证缓解，但无法 100% 消除。</p>
+            </div>
+            <div class="bg-white/50 p-4 rounded-xl border border-black/5">
+                <span class="font-bold">② 样本量天花板</span>
+                <p class="text-xs text-[--text-muted] mt-1">平台 API 限 200 条评论，对百万级播放视频可能不具统计代表性。已通过点赞排序确保每一条都是高质量样本。</p>
+            </div>
+            <div class="bg-white/50 p-4 rounded-xl border border-black/5">
+                <span class="font-bold">③ 文化翻译损耗</span>
+                <p class="text-xs text-[--text-muted] mt-1">跨境分析时，敬语层级、空気読め等微妙表达会丢失。Prompt 中已要求模型标注不确定项。</p>
+            </div>
+            <div class="bg-white/50 p-4 rounded-xl border border-black/5">
+                <span class="font-bold">④ 相关性 ≠ 因果性</span>
+                <p class="text-xs text-[--text-muted] mt-1">高频词 X 不一定是视频成功的原因。报告已区分"相关性发现"和"因果推断"。</p>
+            </div>
+            <div class="bg-white/50 p-4 rounded-xl border border-black/5">
+                <span class="font-bold">⑤ 实时性不足</span>
+                <p class="text-xs text-[--text-muted] mt-1">需手动触发分析，无法持续监控舆论变化（如翻车事件）。已列入中期路线图。</p>
+            </div>
+            <div class="bg-white/50 p-4 rounded-xl border border-black/5">
+                <span class="font-bold">⑥ 创造力的潜在抑制</span>
+                <p class="text-xs text-[--text-muted] mt-1">当 AI 精确预测"观众想看什么"，创作者是否会被数据异化？BEtube 定位为辅助决策工具，而非创作替代品。</p>
+            </div>
+        </div>
+
+        <!-- 折叠：我的深度反思 -->
+        <details class="fold-section mt-6">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                阅读作者的深度反思
+            </summary>
+            <div class="fold-body pt-4 text-sm text-[--text-muted] leading-relaxed space-y-4">
+                <p>这六项局限中，第⑥项是我最常自省的问题。</p>
+                <p>作为一个同时是内容创作者和工具开发者的人，我每天都在走钢索：一方面，BEtube 确实能帮我更高效地理解观众、做出更精准的内容决策；另一方面，我必须警惕"数据决定一切"的思维惯性。</p>
+                <p><strong class="text-black">有些最好的内容，恰恰来自于对数据的"反叛"</strong>——那些直觉驱动的、不理性的、不投其所好的创作。如果 10 年前有人用 BEtube 分析 YouTube，它可能会告诉你："别做 vlog，数据不好"。但 vlog 最终定义了整个时代的媒介语言。</p>
+                <p>所以 BEtube 的设计哲学是：<strong class="text-black">数据为创意提供信息，而不是替代创意。</strong>这也是为什么报告中永远有一栏叫"风险预警"——提醒你，某些建议可能是短视的。</p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== 08 未来路线图 ==================== -->
+<section class="py-8 px-6 md:px-12 max-w-7xl mx-auto">
+    <div class="glass rounded-super p-8 md:p-10 gs-fade">
+        <h2 class="text-2xl md:text-3xl font-black mb-2">未来路线图</h2>
+        <p class="text-[--text-muted] font-serif text-sm mb-6">Where BEtube Is Going</p>
+
+        <!-- 始终可见：三阶段卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div class="bg-blue-50/50 rounded-2xl p-6 border border-blue-100">
+                <div class="font-mono-en text-xs text-[--accent-blue] mb-3">🔜 近期优先</div>
+                <ul class="space-y-2 text-xs text-[--text-muted]">
+                    <li>· 多视频对比模式（横向竞品分析）</li>
+                    <li>· 抖音 / TikTok 平台适配</li>
+                    <li>· 报告 PDF 一键导出</li>
+                </ul>
+            </div>
+            <div class="bg-purple-50/50 rounded-2xl p-6 border border-purple-100">
+                <div class="font-mono-en text-xs text-[--accent-purple] mb-3">🔜 中期方向</div>
+                <ul class="space-y-2 text-xs text-[--text-muted]">
+                    <li>· 弹幕情感实时流分析</li>
+                    <li>· 自动化内容日历建议</li>
+                    <li>· 团队协作空间（共享报告+批注）</li>
+                </ul>
+            </div>
+            <div class="bg-black/5 rounded-2xl p-6 border border-black/10">
+                <div class="font-mono-en text-xs text-black mb-3">🔜 长期愿景</div>
+                <ul class="space-y-2 text-xs text-[--text-muted]">
+                    <li>· 预测性爆款评分（发布前预估）</li>
+                    <li>· 跨平台舆情联动（B站·抖音·微博·小红书）</li>
+                    <li>· 开源社区版（社区贡献适配器+Prompt）</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 折叠：终极愿景 -->
+        <details class="fold-section mt-6">
+            <summary class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors py-2">
+                终极愿景
+            </summary>
+            <div class="fold-body pt-4">
+                <blockquote class="text-lg font-serif text-[--text-muted] italic border-l-4 border-[--accent-blue] pl-6 py-2">
+                    "让每一个内容创作者，都能用工程师的思维方式理解自己的观众。"
+                </blockquote>
+                <p class="text-sm text-[--text-muted] mt-4 leading-relaxed">
+                    BEtube 的终极目标不是成为一个"数据分析工具"，而是成为内容行业的<strong class="text-black">共同操作系统</strong>——连接创作者直觉与受众反馈之间的那最后一道鸿沟。
+                </p>
+            </div>
+        </details>
+    </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="py-16 px-6 border-t border-black/10 text-center gs-fade">
+    <h2 class="text-xl md:text-2xl font-bold font-serif mb-4">"让 AI 看懂人性，用代码丈量情绪。"</h2>
+    <div class="flex flex-wrap justify-center gap-4 mt-6 mb-8">
+        <a href="https://github.com/Mobilteee/BEtube-Analytics-EngineV1.0" target="_blank" class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors pb-1 border-b border-current">GitHub 源码</a>
+        <a href="https://betube-analytics-engine.streamlit.app" target="_blank" class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors pb-1 border-b border-current">Live Demo</a>
+        <a href="mailto:zgtl113@outlook.com" class="text-sm font-bold text-[--accent-blue] hover:text-black transition-colors pb-1 border-b border-current">zgtl113@outlook.com</a>
+    </div>
+    <a href="index.html" class="inline-block text-[--text-muted] hover:text-black font-bold transition-colors text-sm">
+        &larr; Back to Home
+    </a>
+</footer>
+
+</div><!-- /smooth-wrapper -->
+
+<script>
+    // Lenis 平滑滚动
+    const lenis = new Lenis({ duration: 1.2 });
+    function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+    requestAnimationFrame(raf);
+
+    // GSAP 滚动渐现
+    gsap.registerPlugin(ScrollTrigger);
+    gsap.utils.toArray('.gs-fade').forEach(elem => {
+        gsap.from(elem, {
+            scrollTrigger: { trigger: elem, start: "top 85%" },
+            y: 30, opacity: 0, duration: 1, ease: "power3.out"
+        });
+    });
+
+    // 折叠面板动画：打开时平滑滚动到视野
+    document.querySelectorAll('.fold-section').forEach(section => {
+        section.addEventListener('toggle', () => {
+            if (section.open) {
+                // 等过渡完成后滚动
+                setTimeout(() => {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            }
+        });
+    });
+</script>
+
+<!-- Dock导航 -->
+<nav class="dock-nav">
+<a href="index.html" class="dock-item">Home</a>
+<a href="subpage_betube.html" class="dock-item">BEtube</a>
+<a href="subpage_lan.html" class="dock-item">Subtitle</a>
+<a href="subpage__sketch2face.html" class="dock-item">Sketch2Face</a>
+<a href="subpage_bili.html" class="dock-item">B站</a>
+<a href="subpage_douyin.html" class="dock-item">抖音</a>
+<a href="subpage_liter.html" class="dock-item">Liter</a>
+</nav>
+</body>
+</html>
