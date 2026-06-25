@@ -111,16 +111,22 @@
         .dock-nav {
             position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             z-index: 100; display: flex; gap: 6px; padding: 8px;
-            border-radius: 100px;
+            border-radius: 100px; max-width: calc(100vw - 20px);
+            overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
             background: rgba(252, 249, 242, 0.75); backdrop-filter: blur(20px);
             border: 1px solid var(--border-warm); box-shadow: 0 4px 24px rgba(44,36,22,0.06);
         }
+        .dock-nav::-webkit-scrollbar { display: none; }
         .dock-item {
             padding: 10px 20px; border-radius: 100px; font-size: 12px; font-weight: 500;
             color: var(--text-ink); text-decoration: none; transition: all 0.3s ease;
-            white-space: nowrap;
+            white-space: nowrap; flex-shrink: 0;
         }
         .dock-item:hover { background: rgba(199, 120, 44, 0.1); color: var(--accent-amber); }
+        @media (max-width: 640px) {
+            .dock-nav { bottom: 16px; padding: 5px 6px; gap: 3px; }
+            .dock-item { padding: 6px 10px; font-size: 10px; }
+        }
 
         /* 引用块 */
         .pullquote {

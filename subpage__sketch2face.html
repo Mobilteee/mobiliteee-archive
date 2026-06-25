@@ -77,11 +77,14 @@
 
         @media (max-width: 768px) {
             .model-table td { padding: 6px 8px; font-size: 10px; }
+            .model-table th { font-size: 9px; }
         }
     /* 底部Dock导航 */
-.dock-nav{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:100;display:flex;gap:5px;padding:7px 10px;border-radius:100px;background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);box-shadow:0 4px 24px rgba(0,0,0,0.06);}
-.dock-item{padding:8px 16px;border-radius:100px;font-size:11px;font-weight:500;color:var(--text-main);text-decoration:none;transition:all 0.3s ease;white-space:nowrap;}
+.dock-nav{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:100;display:flex;gap:5px;padding:7px 10px;border-radius:100px;background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.6);box-shadow:0 4px 24px rgba(0,0,0,0.06);max-width:calc(100vw - 20px);overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;-webkit-overflow-scrolling:touch;}
+.dock-nav::-webkit-scrollbar{display:none;}
+.dock-item{padding:8px 16px;border-radius:100px;font-size:11px;font-weight:500;color:var(--text-main);text-decoration:none;transition:all 0.3s ease;white-space:nowrap;flex-shrink:0;}
 .dock-item:hover{background:rgba(0,0,0,0.05);}
+@media(max-width:640px){.dock-nav{bottom:16px;padding:5px 6px;gap:3px;}.dock-item{padding:6px 10px;font-size:10px;}}
 </style>
 </head>
 <body>
@@ -101,26 +104,34 @@
 
 <!-- ==================== HERO ==================== -->
 <section class="min-h-screen flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto pt-24 pb-12">
-    <div class="gs-fade">
-        <span class="tag-pill bg-purple-50 text-purple-600 mb-6">Academic Research · Deep Learning Course Design</span>
-        <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6">
-            Sketch2Face<br>简笔画人脸生成系统
-        </h1>
-        <p class="text-xl md:text-2xl text-[--text-muted] font-serif max-w-3xl leading-relaxed mb-4">
-            基于条件生成对抗网络（cGAN）的端到端图像翻译
-        </p>
-        <p class="text-base md:text-lg text-[--text-muted] max-w-2xl leading-relaxed mb-10">
-            从一张手绘简笔画出发，让 AI 生成对应的逼真人脸照片。本项目为深度学习课程设计，基于 <strong class="text-black">pix2pix 框架 + U-Net 生成器 + PatchGAN 判别器</strong>，
-            在 FS2K 数据集（2,104 对样本）上完成训练，并额外设计了两套改进方案：<strong class="text-black">检索增强模块</strong>与<strong class="text-black">数据增强微调策略</strong>。
-        </p>
-
-        <div class="flex flex-wrap gap-4">
-            <a href="https://github.com/Mobilteee/sketch2face-augmented" target="_blank" class="glass px-8 py-4 rounded-full font-bold hover:bg-black hover:text-white transition-all shadow-md flex items-center gap-2">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-                GitHub 仓库
-            </a>
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-10 items-center gs-fade">
+        <div class="lg:col-span-3">
+            <span class="tag-pill bg-purple-50 text-purple-600 mb-6">Academic Research · Deep Learning Course Design</span>
+            <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-tight mb-6">
+                Sketch2Face<br>简笔画人脸生成系统
+            </h1>
+            <p class="text-xl md:text-2xl text-[--text-muted] font-serif max-w-3xl leading-relaxed mb-4">
+                基于条件生成对抗网络（cGAN）的端到端图像翻译
+            </p>
+            <p class="text-base md:text-lg text-[--text-muted] max-w-2xl leading-relaxed mb-10">
+                从一张手绘简笔画出发，让 AI 生成对应的逼真人脸照片。本项目为深度学习课程设计，基于 <strong class="text-black">pix2pix 框架 + U-Net 生成器 + PatchGAN 判别器</strong>，
+                在 FS2K 数据集（2,104 对样本）上完成训练，并额外设计了两套改进方案：<strong class="text-black">检索增强模块</strong>与<strong class="text-black">数据增强微调策略</strong>。
+            </p>
+            <div class="flex flex-wrap gap-4">
+                <a href="https://github.com/Mobilteee/sketch2face-augmented" target="_blank" class="glass px-8 py-4 rounded-full font-bold hover:bg-black hover:text-white transition-all shadow-md flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                    GitHub 仓库
+                </a>
+            </div>
+            <p class="text-xs text-[--text-muted] mt-4">本地 PyCharm 终端运行 · Gradio 前端交互 · 未部署线上服务</p>
         </div>
-        <p class="text-xs text-[--text-muted] mt-4">本地 PyCharm 终端运行 · Gradio 前端交互 · 未部署线上服务</p>
+        <div class="lg:col-span-2 hidden lg:flex flex-col items-center justify-center gap-3">
+            <div class="w-full aspect-[4/3] rounded-2xl border-2 border-dashed border-black/10 bg-white/30 flex flex-col items-center justify-center text-[--text-muted]">
+                <span class="text-4xl mb-2">🖼️</span>
+                <span class="text-xs font-bold">简笔画 → 人脸生成对比图</span>
+                <span class="text-[10px] mt-1">输入草图 · 生成结果 · 检索匹配</span>
+            </div>
+        </div>
     </div>
 </section>
 
